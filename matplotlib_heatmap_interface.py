@@ -73,6 +73,494 @@ except ImportError as e:
     print(f"⚠️ 简化校正系统未找到: {e}")
     UNIFORM_CALIBRATION_AVAILABLE = False
 
+class CalibrationAnalysisWindow(QWidget):
+    """校正数据分析窗口 - 实时版本"""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("校正数据分析 (实时)")
+        self.setGeometry(300, 300, 1200, 800)
+        self.setWindowFlags(QtCore.Qt.Window)
+        self.paused = False
+        self.init_ui()
+        
+    def init_ui(self):
+        """初始化UI"""
+        layout = QVBoxLayout()
+        
+        # 标题
+        title_label = QLabel("校正数据分析 (实时)")
+        title_label.setStyleSheet("font-size: 16px; font-weight: bold; margin: 10px;")
+        title_label.setAlignment(QtCore.Qt.AlignCenter)
+        layout.addWidget(title_label)
+        
+        # 创建matplotlib图形，包含多个子图
+        self.figure = Figure(figsize=(12, 8), dpi=100)
+        self.canvas = FigureCanvas(self.figure)
+        
+        # 创建3x2的子图布局
+        self.ax1 = self.figure.add_subplot(231)  # 原始数据热力图
+        self.ax2 = self.figure.add_subplot(232)  # 校正系数热力图
+        self.ax3 = self.figure.add_subplot(233)  # 校正后数据热力图
+        self.ax4 = self.figure.add_subplot(234)  # 校正系数分布直方图
+        self.ax5 = self.figure.add_subplot(235)  # 校正系数与压力关系散点图
+        self.ax6 = self.figure.add_subplot(236)  # 校正前后数据对比
+        
+        # 添加matplotlib工具栏
+        self.toolbar = NavigationToolbar(self.canvas, self)
+        
+        # 控制按钮
+        button_layout = QHBoxLayout()
+        
+        self.pause_btn = QPushButton("暂停/继续")
+        self.pause_btn.clicked.connect(self.toggle_pause)
+        
+        self.save_analysis_btn = QPushButton("保存分析结果")
+        self.save_analysis_btn.clicked.connect(self.save_analysis)
+        
+        self.close_btn = QPushButton("关闭")
+        self.close_btn.clicked.connect(self.close)
+        
+        button_layout.addWidget(self.pause_btn)
+        button_layout.addWidget(self.save_analysis_btn)
+        button_layout.addWidget(self.close_btn)
+        button_layout.addStretch()
+        
+        # 统计信息显示
+        stats_layout = QHBoxLayout()
+        
+        self.original_stats_label = QLabel("原始数据统计: --")
+        self.corrected_stats_label = QLabel("校正后数据统计: --")
+        self.improvement_label = QLabel("改善效果: --")
+        self.quality_label = QLabel("校正质量: --")
+        self.update_freq_label = QLabel("更新频率: 5 FPS")
+        self.last_update_label = QLabel("最后更新: --")
+        
+        stats_layout.addWidget(self.original_stats_label)
+        stats_layout.addWidget(self.corrected_stats_label)
+        stats_layout.addWidget(self.improvement_label)
+        stats_layout.addWidget(self.quality_label)
+        stats_layout.addWidget(self.update_freq_label)
+        stats_layout.addWidget(self.last_update_label)
+        
+        # 组装布局
+        layout.addWidget(self.toolbar)
+        layout.addWidget(self.canvas)
+        layout.addLayout(stats_layout)
+        layout.addLayout(button_layout)
+        
+        self.setLayout(layout)
+        
+        # 初始化图像对象
+        self.im1 = None
+        self.im2 = None
+        self.im3 = None
+        self.im4 = None
+        self.im5 = None
+        self.im6 = None
+        
+    def update_analysis(self, original_data, calibration_map, corrected_data):
+        """更新校正分析数据 - 实时版本"""
+        if self.paused:
+            return
+            
+        try:
+            # 1. 原始数据热力图
+            if self.im1 is None:
+                self.im1 = self.ax1.imshow(original_data, cmap='viridis', aspect='auto', 
+                                         vmin=0, vmax=0.01, origin='lower')
+                self.ax1.set_title('原始数据')
+                self.ax1.set_xlabel('X轴')
+                self.ax1.set_ylabel('Y轴')
+                self.figure.colorbar(self.im1, ax=self.ax1, shrink=0.8)
+            else:
+                self.im1.set_array(original_data)
+            
+            # 2. 校正系数热力图
+            if self.im2 is None:
+                self.im2 = self.ax2.imshow(calibration_map, cmap='RdYlBu', aspect='auto', 
+                                         origin='lower')
+                self.ax2.set_title('校正系数')
+                self.ax2.set_xlabel('X轴')
+                self.ax2.set_ylabel('Y轴')
+                self.figure.colorbar(self.im2, ax=self.ax2, shrink=0.8)
+            else:
+                self.im2.set_array(calibration_map)
+            
+            # 3. 校正后数据热力图
+            if self.im3 is None:
+                self.im3 = self.ax3.imshow(corrected_data, cmap='viridis', aspect='auto', 
+                                         vmin=0, vmax=0.01, origin='lower')
+                self.ax3.set_title('校正后数据')
+                self.ax3.set_xlabel('X轴')
+                self.ax3.set_ylabel('Y轴')
+                self.figure.colorbar(self.im3, ax=self.ax3, shrink=0.8)
+            else:
+                self.im3.set_array(corrected_data)
+            
+            # 4. 校正系数分布直方图
+            self.ax4.clear()
+            calibration_flat = calibration_map.flatten()
+            self.ax4.hist(calibration_flat, bins=50, alpha=0.7, color='skyblue', edgecolor='black')
+            self.ax4.set_title('校正系数分布')
+            self.ax4.set_xlabel('校正系数值')
+            self.ax4.set_ylabel('频次')
+            self.ax4.grid(True, alpha=0.3)
+            
+            # 添加统计信息
+            mean_coeff = np.mean(calibration_flat)
+            std_coeff = np.std(calibration_flat)
+            self.ax4.axvline(mean_coeff, color='red', linestyle='--', 
+                           label=f'均值: {mean_coeff:.4f}')
+            self.ax4.axvline(mean_coeff + std_coeff, color='orange', linestyle=':', 
+                           label=f'+1σ: {mean_coeff + std_coeff:.4f}')
+            self.ax4.axvline(mean_coeff - std_coeff, color='orange', linestyle=':', 
+                           label=f'-1σ: {mean_coeff - std_coeff:.4f}')
+            self.ax4.legend()
+            
+            # 5. 校正系数与压力关系散点图
+            self.ax5.clear()
+            # 随机采样一些点来显示关系
+            sample_size = min(1000, original_data.size)
+            indices = np.random.choice(original_data.size, sample_size, replace=False)
+            orig_samples = original_data.flatten()[indices]
+            calib_samples = calibration_map.flatten()[indices]
+            
+            self.ax5.scatter(orig_samples, calib_samples, alpha=0.6, s=10)
+            self.ax5.set_xlabel('原始压力值')
+            self.ax5.set_ylabel('校正系数')
+            self.ax5.set_title('校正系数与压力关系')
+            self.ax5.grid(True, alpha=0.3)
+            
+            # 添加趋势线
+            if len(orig_samples) > 1:
+                z = np.polyfit(orig_samples, calib_samples, 1)
+                p = np.poly1d(z)
+                self.ax5.plot(orig_samples, p(orig_samples), "r--", alpha=0.8, 
+                            label=f'趋势线: y={z[0]:.3f}x+{z[1]:.3f}')
+                self.ax5.legend()
+            
+            # 6. 校正前后数据对比
+            self.ax6.clear()
+            # 显示校正前后的数据分布对比
+            orig_flat = original_data.flatten()
+            corr_flat = corrected_data.flatten()
+            
+            self.ax6.hist(orig_flat, bins=50, alpha=0.7, label='原始数据', color='blue')
+            self.ax6.hist(corr_flat, bins=50, alpha=0.7, label='校正后数据', color='red')
+            self.ax6.set_xlabel('压力值')
+            self.ax6.set_ylabel('频次')
+            self.ax6.set_title('校正前后数据分布对比')
+            self.ax6.legend()
+            self.ax6.grid(True, alpha=0.3)
+            
+            # 更新统计信息标签
+            orig_mean = np.mean(original_data)
+            orig_std = np.std(original_data)
+            corr_mean = np.mean(corrected_data)
+            corr_std = np.std(corrected_data)
+            
+            self.original_stats_label.setText(f"原始: 均值={orig_mean:.4f}, 标准差={orig_std:.4f}")
+            self.corrected_stats_label.setText(f"校正后: 均值={corr_mean:.4f}, 标准差={corr_std:.4f}")
+            
+            # 计算改善效果
+            if orig_std > 0:
+                improvement = (orig_std - corr_std) / orig_std * 100
+                self.improvement_label.setText(f"标准差改善: {improvement:.1f}%")
+            else:
+                self.improvement_label.setText("改善效果: 无法计算")
+            
+            # 评估校正质量
+            quality_score = self.evaluate_calibration_quality(original_data, corrected_data, calibration_map)
+            self.quality_label.setText(f"校正质量: {quality_score:.1f}/10")
+            
+            # 更新时间戳
+            current_time = datetime.now().strftime("%H:%M:%S")
+            self.last_update_label.setText(f"最后更新: {current_time}")
+            
+            # 调整子图间距
+            self.figure.tight_layout()
+            
+            # 更新画布
+            self.canvas.draw()
+            
+        except Exception as e:
+            print(f"⚠️ 更新校正分析时出错: {e}")
+    
+    def save_analysis(self):
+        """保存分析结果"""
+        filename, _ = QFileDialog.getSaveFileName(
+            self, "保存校正分析", "", "PNG图片 (*.png);;JPG图片 (*.jpg);;PDF文件 (*.pdf)"
+        )
+        
+        if filename:
+            try:
+                self.figure.savefig(filename, dpi=300, bbox_inches='tight')
+                QMessageBox.information(self, "成功", f"校正分析已保存到: {filename}")
+            except Exception as e:
+                QMessageBox.critical(self, "错误", f"保存失败: {e}")
+    
+    def evaluate_calibration_quality(self, original_data, corrected_data, calibration_map):
+        """评估校正质量（0-10分）"""
+        try:
+            score = 0.0
+            
+            # 1. 标准差改善程度 (0-3分)
+            orig_std = np.std(original_data)
+            corr_std = np.std(corrected_data)
+            if orig_std > 0:
+                std_improvement = (orig_std - corr_std) / orig_std
+                score += min(3.0, std_improvement * 10)
+            
+            # 2. 校正系数一致性 (0-3分)
+            calib_std = np.std(calibration_map)
+            calib_mean = np.mean(calibration_map)
+            if calib_mean > 0:
+                calib_cv = calib_std / calib_mean  # 变异系数
+                score += max(0, 3.0 - calib_cv * 10)
+            
+            # 3. 数据分布改善 (0-2分)
+            orig_skew = self.calculate_skewness(original_data)
+            corr_skew = self.calculate_skewness(corrected_data)
+            skew_improvement = abs(orig_skew) - abs(corr_skew)
+            score += max(0, min(2.0, skew_improvement))
+            
+            # 4. 校正系数合理性 (0-2分)
+            calib_min = np.min(calibration_map)
+            calib_max = np.max(calibration_map)
+            if 0.5 <= calib_min <= 2.0 and 0.5 <= calib_max <= 2.0:
+                score += 2.0
+            elif 0.2 <= calib_min <= 5.0 and 0.2 <= calib_max <= 5.0:
+                score += 1.0
+            
+            return min(10.0, score)
+            
+        except Exception as e:
+            print(f"⚠️ 评估校正质量时出错: {e}")
+            return 0.0
+    
+    def calculate_skewness(self, data):
+        """计算偏度"""
+        try:
+            mean = np.mean(data)
+            std = np.std(data)
+            if std > 0:
+                skew = np.mean(((data - mean) / std) ** 3)
+                return skew
+            return 0.0
+        except:
+            return 0.0
+    
+    def toggle_pause(self):
+        """切换暂停状态"""
+        self.paused = not self.paused
+        if self.paused:
+            self.pause_btn.setText("继续")
+        else:
+            self.pause_btn.setText("暂停")
+    
+    def closeEvent(self, event):
+        """窗口关闭事件"""
+        # 通知父窗口停止分析定时器
+        if hasattr(self.parent(), 'analysis_timer'):
+            self.parent().analysis_timer.stop()
+        event.accept()
+
+class RealTimeCorrectionWindow(QWidget):
+    """实时校正比较窗口"""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("实时校正比较")
+        self.setGeometry(400, 400, 1000, 600)
+        self.setWindowFlags(QtCore.Qt.Window)
+        self.init_ui()
+        
+    def init_ui(self):
+        """初始化UI"""
+        layout = QVBoxLayout()
+        
+        # 标题
+        title_label = QLabel("实时校正比较")
+        title_label.setStyleSheet("font-size: 16px; font-weight: bold; margin: 10px;")
+        title_label.setAlignment(QtCore.Qt.AlignCenter)
+        layout.addWidget(title_label)
+        
+        # 创建matplotlib图形，包含2x2的子图
+        self.figure = Figure(figsize=(10, 6), dpi=100)
+        self.canvas = FigureCanvas(self.figure)
+        
+        # 创建2x2的子图布局
+        self.ax1 = self.figure.add_subplot(221)  # 原始数据
+        self.ax2 = self.figure.add_subplot(222)  # 校正后数据
+        self.ax3 = self.figure.add_subplot(223)  # 差异图
+        self.ax4 = self.figure.add_subplot(224)  # 实时统计
+        
+        # 添加matplotlib工具栏
+        self.toolbar = NavigationToolbar(self.canvas, self)
+        
+        # 统计信息显示
+        stats_layout = QHBoxLayout()
+        
+        self.original_stats_label = QLabel("原始数据: --")
+        self.corrected_stats_label = QLabel("校正后数据: --")
+        self.difference_stats_label = QLabel("差异统计: --")
+        self.calibration_info_label = QLabel("校正系数: --")
+        
+        stats_layout.addWidget(self.original_stats_label)
+        stats_layout.addWidget(self.corrected_stats_label)
+        stats_layout.addWidget(self.difference_stats_label)
+        stats_layout.addWidget(self.calibration_info_label)
+        
+        # 控制按钮
+        button_layout = QHBoxLayout()
+        
+        self.pause_btn = QPushButton("暂停/继续")
+        self.pause_btn.clicked.connect(self.toggle_pause)
+        self.paused = False
+        
+        self.save_comparison_btn = QPushButton("保存比较结果")
+        self.save_comparison_btn.clicked.connect(self.save_comparison)
+        
+        self.close_btn = QPushButton("关闭")
+        self.close_btn.clicked.connect(self.close)
+        
+        button_layout.addWidget(self.pause_btn)
+        button_layout.addWidget(self.save_comparison_btn)
+        button_layout.addWidget(self.close_btn)
+        button_layout.addStretch()
+        
+        # 组装布局
+        layout.addWidget(self.toolbar)
+        layout.addWidget(self.canvas)
+        layout.addLayout(stats_layout)
+        layout.addLayout(button_layout)
+        
+        self.setLayout(layout)
+        
+        # 初始化图像对象
+        self.im1 = None
+        self.im2 = None
+        self.im3 = None
+        
+    def update_comparison(self, original_data, corrected_data):
+        """更新实时校正比较"""
+        if self.paused:
+            return
+            
+        try:
+            # 计算差异
+            difference = corrected_data - original_data
+            
+            # 1. 原始数据
+            if self.im1 is None:
+                self.im1 = self.ax1.imshow(original_data, cmap='viridis', aspect='auto', 
+                                         vmin=0, vmax=0.01, origin='lower')
+                self.ax1.set_title('原始数据')
+                self.ax1.set_xlabel('X轴')
+                self.ax1.set_ylabel('Y轴')
+                self.figure.colorbar(self.im1, ax=self.ax1, shrink=0.8)
+            else:
+                self.im1.set_array(original_data)
+            
+            # 2. 校正后数据
+            if self.im2 is None:
+                self.im2 = self.ax2.imshow(corrected_data, cmap='viridis', aspect='auto', 
+                                         vmin=0, vmax=0.01, origin='lower')
+                self.ax2.set_title('校正后数据')
+                self.ax2.set_xlabel('X轴')
+                self.ax2.set_ylabel('Y轴')
+                self.figure.colorbar(self.im2, ax=self.ax2, shrink=0.8)
+            else:
+                self.im2.set_array(corrected_data)
+            
+            # 3. 差异图
+            if self.im3 is None:
+                self.im3 = self.ax3.imshow(difference, cmap='RdBu_r', aspect='auto', 
+                                         origin='lower')
+                self.ax3.set_title('差异 (校正后 - 原始)')
+                self.ax3.set_xlabel('X轴')
+                self.ax3.set_ylabel('Y轴')
+                self.figure.colorbar(self.im3, ax=self.ax3, shrink=0.8)
+            else:
+                self.im3.set_array(difference)
+            
+            # 4. 实时统计
+            self.ax4.clear()
+            
+            # 计算统计信息
+            orig_mean = np.mean(original_data)
+            orig_std = np.std(original_data)
+            corr_mean = np.mean(corrected_data)
+            corr_std = np.std(corrected_data)
+            diff_mean = np.mean(difference)
+            diff_std = np.std(difference)
+            
+            # 绘制统计柱状图
+            categories = ['均值', '标准差']
+            orig_values = [orig_mean, orig_std]
+            corr_values = [corr_mean, corr_std]
+            
+            x = np.arange(len(categories))
+            width = 0.35
+            
+            self.ax4.bar(x - width/2, orig_values, width, label='原始数据', alpha=0.8)
+            self.ax4.bar(x + width/2, corr_values, width, label='校正后数据', alpha=0.8)
+            
+            self.ax4.set_xlabel('统计指标')
+            self.ax4.set_ylabel('数值')
+            self.ax4.set_title('实时统计比较')
+            self.ax4.set_xticks(x)
+            self.ax4.set_xticklabels(categories)
+            self.ax4.legend()
+            self.ax4.grid(True, alpha=0.3)
+            
+            # 更新统计标签
+            self.original_stats_label.setText(f"原始: 均值={orig_mean:.4f}, 标准差={orig_std:.4f}")
+            self.corrected_stats_label.setText(f"校正后: 均值={corr_mean:.4f}, 标准差={corr_std:.4f}")
+            self.difference_stats_label.setText(f"差异: 均值={diff_mean:.4f}, 标准差={diff_std:.4f}")
+            
+            # 更新校正系数信息（从父窗口获取）
+            if hasattr(self.parent(), 'calibration_map') and self.parent().calibration_map is not None:
+                calib_map = self.parent().calibration_map
+                calib_mean = np.mean(calib_map)
+                calib_std = np.std(calib_map)
+                calib_min = np.min(calib_map)
+                calib_max = np.max(calib_map)
+                self.calibration_info_label.setText(f"校正系数: 均值={calib_mean:.4f}, 范围=[{calib_min:.4f}, {calib_max:.4f}]")
+            else:
+                self.calibration_info_label.setText("校正系数: 未设置")
+            
+            # 调整子图间距
+            self.figure.tight_layout()
+            
+            # 更新画布
+            self.canvas.draw()
+            
+        except Exception as e:
+            print(f"⚠️ 更新实时校正比较时出错: {e}")
+    
+    def toggle_pause(self):
+        """切换暂停状态"""
+        self.paused = not self.paused
+        if self.paused:
+            self.pause_btn.setText("继续")
+        else:
+            self.pause_btn.setText("暂停")
+    
+    def save_comparison(self):
+        """保存比较结果"""
+        filename, _ = QFileDialog.getSaveFileName(
+            self, "保存校正比较", "", "PNG图片 (*.png);;JPG图片 (*.jpg);;PDF文件 (*.pdf)"
+        )
+        
+        if filename:
+            try:
+                self.figure.savefig(filename, dpi=300, bbox_inches='tight')
+                QMessageBox.information(self, "成功", f"校正比较已保存到: {filename}")
+            except Exception as e:
+                QMessageBox.critical(self, "错误", f"保存失败: {e}")
+
 class ConsistencyHeatmapWindow(QWidget):
     """一致性热力图显示窗口 - matplotlib版本"""
     
@@ -588,6 +1076,12 @@ class MatplotlibSensorInterface(QWidget):
         # 简化校正组件
         self.uniform_calibration_widget = UniformObjectCalibration(self) if UNIFORM_CALIBRATION_AVAILABLE else None
         
+        # 实时校正比较窗口
+        self.correction_comparison_window = RealTimeCorrectionWindow(self)
+        
+        # 校正分析窗口
+        self.calibration_analysis_window = CalibrationAnalysisWindow(self)
+        
         # 设置窗口属性
         self.setWindowTitle("传感器界面 - matplotlib版本 (支持中文与校正系统)")
         self.setGeometry(100, 100, 1400, 900)
@@ -678,10 +1172,20 @@ class MatplotlibSensorInterface(QWidget):
         self.reset_calibration_btn.clicked.connect(self.reset_calibration)
         self.reset_calibration_btn.setToolTip("重置校正设置")
         
+        self.calibration_analysis_btn = QPushButton("校正分析")
+        self.calibration_analysis_btn.clicked.connect(self.show_calibration_analysis)
+        self.calibration_analysis_btn.setToolTip("显示实时校正数据分析")
+        
+        self.realtime_comparison_btn = QPushButton("实时比较")
+        self.realtime_comparison_btn.clicked.connect(self.show_realtime_comparison)
+        self.realtime_comparison_btn.setToolTip("显示实时校正比较")
+        
         toolbar_layout.addWidget(self.quick_calibration_btn)
         toolbar_layout.addWidget(self.save_data_btn)
         toolbar_layout.addWidget(self.export_report_btn)
         toolbar_layout.addWidget(self.reset_calibration_btn)
+        toolbar_layout.addWidget(self.calibration_analysis_btn)
+        toolbar_layout.addWidget(self.realtime_comparison_btn)
         toolbar_layout.addStretch()
         
         # 热力图显示区域
@@ -785,6 +1289,18 @@ class MatplotlibSensorInterface(QWidget):
         if enabled:
             self.correction_status_label.setText("校正: 开启")
             self.correction_status_label.setStyleSheet("color: green; font-weight: bold;")
+            
+            # 询问是否显示校正分析
+            if calibration_map is not None:
+                msg = QMessageBox(self)
+                msg.setWindowTitle("校正完成")
+                msg.setText("校正已完成并启用。是否查看校正数据分析？")
+                msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+                msg.button(QMessageBox.Yes).setText("查看分析")
+                msg.button(QMessageBox.No).setText("稍后查看")
+                
+                if msg.exec_() == QMessageBox.Yes:
+                    self.show_calibration_analysis()
         else:
             self.correction_status_label.setText("校正: 关闭")
             self.correction_status_label.setStyleSheet("color: gray; font-weight: bold;")
@@ -1034,6 +1550,98 @@ class MatplotlibSensorInterface(QWidget):
         
         QMessageBox.information(self, "重置完成", "校正功能已重置")
     
+    def show_calibration_analysis(self):
+        """显示校正数据分析 - 实时版本"""
+        if not self.correction_enabled or self.calibration_map is None:
+            QMessageBox.warning(self, "警告", "请先进行校正并启用校正功能")
+            return
+        
+        try:
+            # 显示校正分析窗口
+            self.calibration_analysis_window.show()
+            self.calibration_analysis_window.raise_()
+            
+            # 设置定时器更新实时分析
+            if not hasattr(self, 'analysis_timer'):
+                self.analysis_timer = QTimer()
+                self.analysis_timer.timeout.connect(self.update_calibration_analysis)
+            
+            self.analysis_timer.start(200)  # 每200ms更新一次
+            
+        except Exception as e:
+            QMessageBox.critical(self, "错误", f"显示校正分析失败: {e}")
+    
+    def update_calibration_analysis(self):
+        """更新实时校正分析"""
+        if not self.correction_enabled or self.calibration_map is None:
+            return
+        
+        try:
+            # 获取当前数据
+            if self.data_handler:
+                self.data_handler.trigger()
+                with self.data_handler.lock:
+                    if self.data_handler.value:
+                        current_data = np.array(self.data_handler.value[-1])
+                    else:
+                        return
+            else:
+                current_data = self.generate_simulated_data()
+            
+            # 应用校正
+            corrected_data = current_data * self.calibration_map
+            
+            # 更新校正分析窗口
+            self.calibration_analysis_window.update_analysis(
+                current_data, self.calibration_map, corrected_data
+            )
+            
+        except Exception as e:
+            print(f"⚠️ 更新实时校正分析时出错: {e}")
+    
+    def show_realtime_comparison(self):
+        """显示实时校正比较"""
+        if not self.correction_enabled or self.calibration_map is None:
+            QMessageBox.warning(self, "警告", "请先进行校正并启用校正功能")
+            return
+        
+        # 显示实时比较窗口
+        self.correction_comparison_window.show()
+        self.correction_comparison_window.raise_()
+        
+        # 设置定时器更新实时比较
+        if not hasattr(self, 'comparison_timer'):
+            self.comparison_timer = QTimer()
+            self.comparison_timer.timeout.connect(self.update_realtime_comparison)
+        
+        self.comparison_timer.start(100)  # 每100ms更新一次
+    
+    def update_realtime_comparison(self):
+        """更新实时校正比较"""
+        if not self.correction_enabled or self.calibration_map is None:
+            return
+        
+        try:
+            # 获取当前数据
+            if self.data_handler:
+                self.data_handler.trigger()
+                with self.data_handler.lock:
+                    if self.data_handler.value:
+                        current_data = np.array(self.data_handler.value[-1])
+                    else:
+                        return
+            else:
+                current_data = self.generate_simulated_data()
+            
+            # 应用校正
+            corrected_data = current_data * self.calibration_map
+            
+            # 更新实时比较窗口
+            self.correction_comparison_window.update_comparison(current_data, corrected_data)
+            
+        except Exception as e:
+            print(f"⚠️ 更新实时校正比较时出错: {e}")
+    
     def update_fps(self):
         """更新FPS计数"""
         now = datetime.now()
@@ -1236,6 +1844,14 @@ class MatplotlibSensorInterface(QWidget):
         reset_calibration_action = menu.addAction("重置校正")
         reset_calibration_action.triggered.connect(self.reset_calibration)
         
+        # 校正分析
+        calibration_analysis_action = menu.addAction("实时校正数据分析")
+        calibration_analysis_action.triggered.connect(self.show_calibration_analysis)
+        
+        # 实时校正比较
+        realtime_comparison_action = menu.addAction("实时校正比较")
+        realtime_comparison_action.triggered.connect(self.show_realtime_comparison)
+        
         menu.addSeparator()
         
         # 数据处理器状态
@@ -1298,6 +1914,18 @@ class MatplotlibSensorInterface(QWidget):
 2. 传统校正：使用"校正系统"标签页
 3. 简化校正：使用"简化校正"标签页
 4. 重置校正：点击"重置校正"按钮
+5. 校正分析：点击"校正分析"按钮查看实时校正数据可视化
+6. 实时比较：点击"实时比较"按钮查看校正前后差异
+
+===== 校正分析功能 =====
+• 实时校正数据分析：实时显示原始数据、校正系数、校正后数据的对比
+• 实时校正比较：实时显示校正前后的数据差异和统计信息
+• 校正系数分布：实时分析校正系数的统计分布特征
+• 差异可视化：实时直观显示校正对数据的影响
+• 校正系数与压力关系：实时分析校正系数与原始压力的相关性
+• 数据分布对比：实时比较校正前后的数据分布变化
+• 改善效果评估：实时量化校正对数据一致性的改善程度
+• 校正质量评估：实时评估校正质量（0-10分）
 
 ===== 数据保存 =====
 1. 右键菜单 -> "保存当前数据"
@@ -1314,16 +1942,26 @@ class MatplotlibSensorInterface(QWidget):
         about_text = """
 传感器界面 - matplotlib版本
 
-版本: 2.0
+版本: 2.1
 基于matplotlib实现，提供稳定的热力图显示
 
 功能特性:
 ✓ 实时传感器数据显示
 ✓ 一致性评估分析
 ✓ 校正系统支持
+✓ 实时校正数据分析可视化
+✓ 实时校正比较
+✓ 实时校正质量评估
 ✓ 数据保存和导出
 ✓ 中文界面支持
 ✓ 模拟数据模式
+
+新增功能:
+• 实时校正系数与压力关系分析
+• 实时校正前后数据分布对比
+• 实时校正效果监控
+• 实时校正质量量化评估
+• 暂停/继续实时分析功能
 
 技术支持: 传感器研究团队
 """
@@ -1356,6 +1994,14 @@ class MatplotlibSensorInterface(QWidget):
     def closeEvent(self, event):
         """窗口关闭事件"""
         self.stop_sensor()
+        
+        # 停止实时比较定时器
+        if hasattr(self, 'comparison_timer'):
+            self.comparison_timer.stop()
+        
+        # 停止实时分析定时器
+        if hasattr(self, 'analysis_timer'):
+            self.analysis_timer.stop()
         
         # 停止校正数据收集线程
         if hasattr(self.calibration_widget, 'collection_thread') and self.calibration_widget.collection_thread:
