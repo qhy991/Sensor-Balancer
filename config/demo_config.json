@@ -1,0 +1,143 @@
+{
+  "config_name": "演示配置 / Demo Configuration",
+  "config_version": "1.0.0",
+  "created_date": "2024-12-21",
+  "description": "游戏化测试系统演示配置文件 / Gaming Test System Demo Configuration File",
+  
+  "test_config": {
+    "test_directions": [0, 90, 180, 270],
+    "test_duration": 2.5,
+    "contact_timeout": 8.0,
+    "stabilization_time": 1.0,
+    "enable_warmup": true,
+    "warmup_duration": 1.5,
+    "enable_rest_between_tests": true,
+    "rest_duration": 0.5,
+    "enable_repeat_test": false,
+    "repeat_count": 1,
+    "min_success_rate": 0.75
+  },
+  
+  "detection_params": {
+    "pressure_threshold": 0.015,
+    "contact_stability_threshold": 0.008,
+    "max_pressure_threshold": 0.8,
+    "angle_confidence_threshold": 0.25,
+    "angle_tolerance": 35.0,
+    "angle_strict_tolerance": 20.0,
+    "gaussian_sigma": 1.2,
+    "median_filter_size": 3,
+    "enable_temporal_filter": true,
+    "temporal_filter_window": 5,
+    "morphology_kernel_size": 3,
+    "min_contact_area": 15,
+    "max_contact_area": 800
+  },
+  
+  "visualization": {
+    "theme": "dark",
+    "primary_color": "#5E81AC",
+    "secondary_color": "#88C0D0",
+    "accent_color": "#D08770",
+    "font_family": "Microsoft YaHei",
+    "font_size": 11,
+    "title_font_size": 15,
+    "figure_dpi": 100,
+    "figure_size": [10, 8],
+    "animation_interval": 40,
+    "box_size": 1.0,
+    "box_color": "#4C566A",
+    "arrow_length": 0.6,
+    "arrow_color": "#BF616A",
+    "enable_real_time_plot": true,
+    "plot_update_interval": 80,
+    "max_plot_points": 1200
+  },
+  
+  "system_settings": {
+    "sensor_data_shape": [64, 64],
+    "data_update_frequency": 20.0,
+    "data_logging": {
+      "enabled": true,
+      "log_level": "INFO",
+      "max_log_size": "10MB"
+    },
+    "memory_usage": {
+      "max_history_length": 1000,
+      "cleanup_interval": 30.0
+    },
+    "file_paths": {
+      "data_export_dir": "./data/exports",
+      "log_dir": "./logs",
+      "config_dir": "./config"
+    },
+    "export_formats": ["csv", "json", "mat"],
+    "multiprocessing": {
+      "enabled": false,
+      "max_workers": 2
+    },
+    "sensor_connection": {
+      "default_port": "0",
+      "port_type": "numeric",
+      "connection_timeout": 5.0,
+      "retry_attempts": 3,
+      "connection_notes": "直接输入数字0即可连接，不需要COM前缀"
+    }
+  },
+  
+  "calibration": {
+    "calibration_duration": 8.0,
+    "calibration_samples": 80,
+    "noise_level_threshold": 0.002,
+    "enable_auto_calibration": true,
+    "auto_calibration_interval": 1800,
+    "enable_calibration_validation": true,
+    "validation_tolerance": 0.08
+  },
+  
+  "usage_notes": {
+    "description": "游戏化测试系统配置文件 - 演示配置",
+    "description_en": "Gaming Test System Configuration - Demo Setup",
+    "suitable_for": "系统演示、快速测试、开发调试",
+    "connection_guide": {
+      "简化连接步骤": [
+        "1. 将传感器通过USB连接到计算机",
+        "2. 在端口输入框中输入数字: 0",
+        "3. 点击开始按钮即可连接",
+        "注意：不要输入COM0，直接输入数字0"
+      ],
+      "connection_status": {
+        "red": "传感器未连接",
+        "yellow": "正在连接中", 
+        "green": "连接成功，数据正常"
+      },
+      "troubleshooting": [
+        "如果端口0无法连接，可尝试1、2、3等数字",
+        "确保USB连接稳定",
+        "检查传感器供电状态"
+      ]
+    }
+  },
+  
+  "customization_examples": {
+    "快速4方向测试": {
+      "test_directions": [0, 90, 180, 270],
+      "test_duration": 2.0,
+      "angle_tolerance": 40.0
+    },
+    "精确8方向测试": {
+      "test_directions": [0, 45, 90, 135, 180, 225, 270, 315],
+      "test_duration": 4.0,
+      "angle_tolerance": 25.0,
+      "pressure_threshold": 0.01
+    },
+    "研究级12方向测试": {
+      "test_directions": [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330],
+      "test_duration": 5.0,
+      "angle_tolerance": 15.0,
+      "pressure_threshold": 0.005,
+      "enable_repeat_test": true,
+      "repeat_count": 3
+    }
+  }
+} 
