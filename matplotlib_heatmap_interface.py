@@ -73,6 +73,24 @@ except ImportError as e:
     print(f"⚠️ 简化校正系统未找到: {e}")
     UNIFORM_CALIBRATION_AVAILABLE = False
 
+# 导入时间一致性分析模块
+try:
+    from temporal_consistency_analysis import TemporalConsistencyWidget
+    TEMPORAL_ANALYSIS_AVAILABLE = True
+    print("✅ 时间一致性分析模块导入成功")
+except ImportError as e:
+    print(f"⚠️ 时间一致性分析模块未找到: {e}")
+    TEMPORAL_ANALYSIS_AVAILABLE = False
+
+# 导入帧间一致性分析模块
+try:
+    from frame_consistency_analysis import FrameConsistencyWidget, FrameCorrectionSystem
+    FRAME_ANALYSIS_AVAILABLE = True
+    print("✅ 帧间一致性分析模块导入成功")
+except ImportError as e:
+    print(f"⚠️ 帧间一致性分析模块未找到: {e}")
+    FRAME_ANALYSIS_AVAILABLE = False
+
 class CalibrationAnalysisWindow(QWidget):
     """校正数据分析窗口 - 实时版本"""
     
@@ -1082,6 +1100,13 @@ class MatplotlibSensorInterface(QWidget):
         # 校正分析窗口
         self.calibration_analysis_window = CalibrationAnalysisWindow(self)
         
+        # 时间一致性分析组件 - 新增
+        self.temporal_consistency_widget = TemporalConsistencyWidget(self) if TEMPORAL_ANALYSIS_AVAILABLE else None
+        
+        # 帧间一致性分析组件 - 新增
+        self.frame_consistency_widget = FrameConsistencyWidget(self) if FRAME_ANALYSIS_AVAILABLE else None
+        self.frame_correction_system = FrameCorrectionSystem() if FRAME_ANALYSIS_AVAILABLE else None
+        
         # 设置窗口属性
         self.setWindowTitle("传感器界面 - matplotlib版本 (支持中文与校正系统)")
         self.setGeometry(100, 100, 1400, 900)
@@ -1227,9 +1252,17 @@ class MatplotlibSensorInterface(QWidget):
         if self.calibration_widget:
             self.function_tabs.addTab(self.calibration_widget, "校正系统")
         
-        # 简化校正标签页
+        # 简化校正标签页 - 新增
         if self.uniform_calibration_widget:
             self.function_tabs.addTab(self.uniform_calibration_widget, "简化校正")
+        
+        # 时间一致性分析标签页 - 新增
+        if self.temporal_consistency_widget:
+            self.function_tabs.addTab(self.temporal_consistency_widget, "时间一致性分析")
+        
+        # 帧间一致性分析标签页 - 新增
+        if self.frame_consistency_widget:
+            self.function_tabs.addTab(self.frame_consistency_widget, "帧间一致性分析")
         
         right_panel.addWidget(self.function_tabs)
         
@@ -1669,23 +1702,18 @@ class MatplotlibSensorInterface(QWidget):
                 # 使用模拟数据
                 current_data = self.generate_simulated_data()
             
-            # 应用校正
-            if self.correction_enabled and self.calibration_map is not None:
-                try:
-                    # 优先使用简化校正系统
-                    if self.uniform_calibration_widget and self.uniform_calibration_widget.enable_correction_check.isChecked():
-                        corrected_data = self.uniform_calibration_widget.apply_correction(current_data)
-                        if corrected_data is not None:
-                            current_data = corrected_data
-                    # 否则使用传统校正系统
-                    elif self.calibration_widget and hasattr(self.calibration_widget, 'apply_correction'):
-                        corrected_data = self.calibration_widget.apply_correction(current_data)
-                        if corrected_data is not None:
-                            current_data = corrected_data
-                except Exception as e:
-                    print(f"⚠️ 校正应用失败: {e}")
-                    # 校正失败时继续使用原始数据
-                
+            # 应用校正（优先使用简化校正）
+            if self.uniform_calibration_widget and self.uniform_calibration_widget.enable_correction_check.isChecked():
+                corrected_data = self.uniform_calibration_widget.apply_correction(current_data)
+            elif self.calibration_widget and self.calibration_widget.enable_correction_check.isChecked():
+                corrected_data = self.calibration_widget.apply_correction(current_data)
+            else:
+                corrected_data = current_data
+            
+            # 应用帧间校正 - 新增
+            if self.frame_correction_system and self.frame_correction_system.correction_enabled:
+                corrected_data = self.frame_correction_system.correct_frame(corrected_data)
+            
             # 更新热力图
             colormap_name = self.get_colormap(current_data.max() - current_data.min())
             self.heatmap_widget.update_heatmap(current_data, colormap_name)
@@ -1805,22 +1833,44 @@ class MatplotlibSensorInterface(QWidget):
         self.port_input.setEnabled(not self.is_running)
     
     def get_data_handler_status(self):
-        """获取数据处理器状态"""
+        """获取数据处理器状态信息 - 新增调试方法"""
+        status = {
+            'has_data_handler': self.data_handler is not None,
+            'is_running': self.is_running,
+            'data_handler_type': type(self.data_handler).__name__ if self.data_handler else 'None'
+        }
+        
         if self.data_handler:
-            return {
-                'connected': self.is_running,
-                'sensor_id': self.sensor_combo.currentText(),
-                'port': self.port_input.text(),
-                'data_available': self.data_handler.value is not None and len(self.data_handler.value) > 0
-            }
-        else:
-            return {
-                'connected': self.is_running,
-                'sensor_id': self.sensor_combo.currentText(),
-                'port': self.port_input.text(),
-                'data_available': False,
-                'mode': 'simulation'
-            }
+            try:
+                with self.data_handler.lock:
+                    status['has_value'] = self.data_handler.value is not None
+                    status['value_length'] = len(self.data_handler.value) if self.data_handler.value else 0
+            except Exception as e:
+                status['lock_error'] = str(e)
+        
+        return status
+    
+    def get_current_sensor_data(self):
+        """获取当前传感器数据 - 供时间一致性分析使用"""
+        if not self.is_running:
+            return None
+        
+        try:
+            if self.data_handler:
+                # 使用真实传感器数据
+                self.data_handler.trigger()
+                with self.data_handler.lock:
+                    if not self.data_handler.value:
+                        return None
+                    current_data = np.array(self.data_handler.value[-1])
+            else:
+                # 使用模拟数据
+                current_data = self.generate_simulated_data()
+            
+            return current_data
+        except Exception as e:
+            print(f"⚠️ 获取传感器数据失败: {e}")
+            return None
     
     def create_advanced_menu(self):
         """创建高级功能菜单"""

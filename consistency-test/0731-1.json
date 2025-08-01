@@ -1,0 +1,383 @@
+{
+  "timestamp": "2025-07-31T13:41:32.862668",
+  "calibration_file": "C:/Users/84672/Documents/Research/balance-sensor/consistency-test/校正数据-200帧.npy",
+  "weights": {
+    "1": {
+      "mass": 50.0,
+      "unit": "g",
+      "force": 0.49
+    },
+    "2": {
+      "mass": 100.0,
+      "unit": "g",
+      "force": 0.98
+    },
+    "3": {
+      "mass": 150.0,
+      "unit": "g",
+      "force": 1.47
+    },
+    "4": {
+      "mass": 500.0,
+      "unit": "g",
+      "force": 4.8999999999999995
+    },
+    "5": {
+      "mass": 550.0,
+      "unit": "g",
+      "force": 5.39
+    },
+    "6": {
+      "mass": 600.0,
+      "unit": "g",
+      "force": 5.88
+    },
+    "7": {
+      "mass": 650.0,
+      "unit": "g",
+      "force": 6.37
+    }
+  },
+  "measurements": {
+    "1": [
+      {
+        "timestamp": "2025-07-31T13:39:05.286186",
+        "total_pressure": 0.09702167160890185,
+        "mean_pressure": 2.3686931545142053e-05,
+        "max_pressure": 0.00264784175916988
+      },
+      {
+        "timestamp": "2025-07-31T13:39:06.486118",
+        "total_pressure": 0.09740409422152549,
+        "mean_pressure": 2.378029644080212e-05,
+        "max_pressure": 0.00264784175916988
+      },
+      {
+        "timestamp": "2025-07-31T13:39:07.361642",
+        "total_pressure": 0.09871329751421816,
+        "mean_pressure": 2.4099926150932168e-05,
+        "max_pressure": 0.002677817326254822
+      },
+      {
+        "timestamp": "2025-07-31T13:39:08.293612",
+        "total_pressure": 0.09922555224809912,
+        "mean_pressure": 2.4224988341821074e-05,
+        "max_pressure": 0.0025978824806949766
+      },
+      {
+        "timestamp": "2025-07-31T13:39:09.256782",
+        "total_pressure": 0.09900652669029904,
+        "mean_pressure": 2.417151530524879e-05,
+        "max_pressure": 0.002657833614864861
+      },
+      {
+        "timestamp": "2025-07-31T13:39:10.173796",
+        "total_pressure": 0.09959016680858232,
+        "mean_pressure": 2.4314005568501543e-05,
+        "max_pressure": 0.002687809181949803
+      },
+      {
+        "timestamp": "2025-07-31T13:39:11.101982",
+        "total_pressure": 0.10124965315776506,
+        "mean_pressure": 2.4719153602969985e-05,
+        "max_pressure": 0.0026278580477799188
+      },
+      {
+        "timestamp": "2025-07-31T13:39:12.109080",
+        "total_pressure": 0.10043329597881683,
+        "mean_pressure": 2.4519847651078326e-05,
+        "max_pressure": 0.0025978824806949766
+      },
+      {
+        "timestamp": "2025-07-31T13:39:13.090967",
+        "total_pressure": 0.10084101404156122,
+        "mean_pressure": 2.4619388193740532e-05,
+        "max_pressure": 0.0026378499034748993
+      },
+      {
+        "timestamp": "2025-07-31T13:39:14.120114",
+        "total_pressure": 0.10054675734615295,
+        "mean_pressure": 2.4547548180213124e-05,
+        "max_pressure": 0.002677817326254822
+      }
+    ],
+    "2": [
+      {
+        "timestamp": "2025-07-31T13:39:32.176696",
+        "total_pressure": 0.1393152103606478,
+        "mean_pressure": 3.401250252945503e-05,
+        "max_pressure": 0.0035770843388030836
+      },
+      {
+        "timestamp": "2025-07-31T13:39:33.631031",
+        "total_pressure": 0.1404855861226587,
+        "mean_pressure": 3.4298238799477225e-05,
+        "max_pressure": 0.0035670924831081026
+      },
+      {
+        "timestamp": "2025-07-31T13:39:35.062486",
+        "total_pressure": 0.13997763616885484,
+        "mean_pressure": 3.4174227580286825e-05,
+        "max_pressure": 0.003547108771718141
+      },
+      {
+        "timestamp": "2025-07-31T13:39:36.289601",
+        "total_pressure": 0.14109311865728785,
+        "mean_pressure": 3.444656217218942e-05,
+        "max_pressure": 0.003557100627413122
+      },
+      {
+        "timestamp": "2025-07-31T13:39:37.536377",
+        "total_pressure": 0.14122123531434025,
+        "mean_pressure": 3.44778406529151e-05,
+        "max_pressure": 0.0035870761944980637
+      },
+      {
+        "timestamp": "2025-07-31T13:39:38.836875",
+        "total_pressure": 0.14126537239878817,
+        "mean_pressure": 3.448861630829789e-05,
+        "max_pressure": 0.003557100627413122
+      },
+      {
+        "timestamp": "2025-07-31T13:39:40.156316",
+        "total_pressure": 0.1402333165639589,
+        "mean_pressure": 3.423664955174778e-05,
+        "max_pressure": 0.0035670924831081026
+      },
+      {
+        "timestamp": "2025-07-31T13:39:41.442028",
+        "total_pressure": 0.1412554785222117,
+        "mean_pressure": 3.448620081108684e-05,
+        "max_pressure": 0.0035870761944980637
+      },
+      {
+        "timestamp": "2025-07-31T13:39:42.731291",
+        "total_pressure": 0.14119541830697965,
+        "mean_pressure": 3.4471537672602454e-05,
+        "max_pressure": 0.0035870761944980637
+      },
+      {
+        "timestamp": "2025-07-31T13:39:44.037899",
+        "total_pressure": 0.14262150554538966,
+        "mean_pressure": 3.48197035022924e-05,
+        "max_pressure": 0.0036070599058880253
+      }
+    ],
+    "3": [
+      {
+        "timestamp": "2025-07-31T13:39:55.813407",
+        "total_pressure": 0.16043823665731,
+        "mean_pressure": 3.916949137141357e-05,
+        "max_pressure": 0.004276514237451731
+      },
+      {
+        "timestamp": "2025-07-31T13:39:57.124841",
+        "total_pressure": 0.16167760262286068,
+        "mean_pressure": 3.9472070952846847e-05,
+        "max_pressure": 0.004276514237451731
+      },
+      {
+        "timestamp": "2025-07-31T13:39:58.616784",
+        "total_pressure": 0.16406113636112735,
+        "mean_pressure": 4.0053988369415856e-05,
+        "max_pressure": 0.004246538670366788
+      },
+      {
+        "timestamp": "2025-07-31T13:40:00.012142",
+        "total_pressure": 0.16291240605029012,
+        "mean_pressure": 3.977353663337161e-05,
+        "max_pressure": 0.00426652238175675
+      },
+      {
+        "timestamp": "2025-07-31T13:40:01.516156",
+        "total_pressure": 0.16406343152770486,
+        "mean_pressure": 4.005454871281857e-05,
+        "max_pressure": 0.004246538670366788
+      },
+      {
+        "timestamp": "2025-07-31T13:40:03.003347",
+        "total_pressure": 0.16451960400298843,
+        "mean_pressure": 4.01659189460421e-05,
+        "max_pressure": 0.004316481660231654
+      },
+      {
+        "timestamp": "2025-07-31T13:40:04.507230",
+        "total_pressure": 0.16638185209793815,
+        "mean_pressure": 4.062056935984818e-05,
+        "max_pressure": 0.0042865060931467115
+      },
+      {
+        "timestamp": "2025-07-31T13:40:06.029097",
+        "total_pressure": 0.16586961271777154,
+        "mean_pressure": 4.049551091742469e-05,
+        "max_pressure": 0.0042865060931467115
+      },
+      {
+        "timestamp": "2025-07-31T13:40:07.499572",
+        "total_pressure": 0.16587609918221757,
+        "mean_pressure": 4.049709452690859e-05,
+        "max_pressure": 0.00426652238175675
+      },
+      {
+        "timestamp": "2025-07-31T13:40:08.983347",
+        "total_pressure": 0.1611028370599047,
+        "mean_pressure": 3.9331747329078294e-05,
+        "max_pressure": 0.004306489804536673
+      }
+    ],
+    "4": [
+      {
+        "timestamp": "2025-07-31T13:40:22.717021",
+        "total_pressure": 0.1616592230671172,
+        "mean_pressure": 3.946758375662041e-05,
+        "max_pressure": 0.004336465371621616
+      },
+      {
+        "timestamp": "2025-07-31T13:40:24.355168",
+        "total_pressure": 0.06918711552715354,
+        "mean_pressure": 1.689138562674647e-05,
+        "max_pressure": 0.001874797865459247
+      },
+      {
+        "timestamp": "2025-07-31T13:40:26.135918",
+        "total_pressure": 0.3268029607184517,
+        "mean_pressure": 7.978587908165325e-05,
+        "max_pressure": 0.005035400390625
+      },
+      {
+        "timestamp": "2025-07-31T13:40:27.843812",
+        "total_pressure": 0.3372339336450949,
+        "mean_pressure": 8.2332503331322e-05,
+        "max_pressure": 0.005310058593750001
+      },
+      {
+        "timestamp": "2025-07-31T13:40:29.548389",
+        "total_pressure": 0.34320657638104207,
+        "mean_pressure": 8.379066806177785e-05,
+        "max_pressure": 0.0047607421875
+      },
+      {
+        "timestamp": "2025-07-31T13:40:31.200820",
+        "total_pressure": 0.34769530166865525,
+        "mean_pressure": 8.488654825894904e-05,
+        "max_pressure": 0.00543212890625
+      },
+      {
+        "timestamp": "2025-07-31T13:40:32.913641",
+        "total_pressure": 0.35008049323526413,
+        "mean_pressure": 8.546887041876566e-05,
+        "max_pressure": 0.00537109375
+      },
+      {
+        "timestamp": "2025-07-31T13:40:34.614012",
+        "total_pressure": 0.3533452558332446,
+        "mean_pressure": 8.626593159991323e-05,
+        "max_pressure": 0.005645751953125
+      },
+      {
+        "timestamp": "2025-07-31T13:40:36.313641",
+        "total_pressure": 0.3564739714118098,
+        "mean_pressure": 8.702977817671138e-05,
+        "max_pressure": 0.005096435546875
+      },
+      {
+        "timestamp": "2025-07-31T13:40:38.046813",
+        "total_pressure": 0.3584926345648932,
+        "mean_pressure": 8.752261586056963e-05,
+        "max_pressure": 0.00506591796875
+      }
+    ],
+    "5": [],
+    "6": [],
+    "7": []
+  },
+  "results": {
+    "1": {
+      "weight_info": {
+        "mass": 50.0,
+        "unit": "g",
+        "force": 0.49
+      },
+      "measurement_count": 10,
+      "avg_total_pressure": 0.029446164097340383,
+      "std_total_pressure": 0.0013495722088231938,
+      "avg_mean_pressure": 7.189004906577242e-06,
+      "std_mean_pressure": 3.2948540254472505e-07,
+      "avg_max_pressure": 0.000645501022652491,
+      "std_max_pressure": 2.990888053496305e-05,
+      "sensitivity_total": 0.0600942124435518,
+      "sensitivity_mean": 1.4671438584851514e-05,
+      "sensitivity_max": 0.0013173490258214103,
+      "cv": 0.04583185111520482,
+      "baseline_corrected": true
+    },
+    "2": {
+      "weight_info": {
+        "mass": 100.0,
+        "unit": "g",
+        "force": 0.98
+      },
+      "measurement_count": 10,
+      "avg_total_pressure": 0.07090934893185993,
+      "std_total_pressure": 0.000861302695488249,
+      "avg_mean_pressure": 1.7311852766567367e-05,
+      "std_mean_pressure": 2.102789783906858e-07,
+      "avg_max_pressure": 0.001573744416716196,
+      "std_max_pressure": 1.7335221731787742e-05,
+      "sensitivity_total": 0.07235647850189789,
+      "sensitivity_mean": 1.7665155884252414e-05,
+      "sensitivity_max": 0.001605861649710404,
+      "cv": 0.012146532276243497,
+      "baseline_corrected": true
+    },
+    "3": {
+      "weight_info": {
+        "mass": 150.0,
+        "unit": "g",
+        "force": 1.47
+      },
+      "measurement_count": 10,
+      "avg_total_pressure": 0.09373324296375951,
+      "std_total_pressure": 0.001991557599786772,
+      "avg_mean_pressure": 2.28840925204491e-05,
+      "std_mean_pressure": 4.862201171354424e-07,
+      "avg_max_pressure": 0.002277171057642836,
+      "std_max_pressure": 2.163877018861065e-05,
+      "sensitivity_total": 0.06376411085970035,
+      "sensitivity_mean": 1.556740987785653e-05,
+      "sensitivity_max": 0.0015490959575801605,
+      "cv": 0.021247078803800445,
+      "baseline_corrected": true
+    },
+    "4": {
+      "weight_info": {
+        "mass": 500.0,
+        "unit": "g",
+        "force": 4.8999999999999995
+      },
+      "measurement_count": 10,
+      "avg_total_pressure": 0.23046070774102084,
+      "std_total_pressure": 0.09519553430102161,
+      "avg_mean_pressure": 5.626482122583517e-05,
+      "std_mean_pressure": 2.3241097241460354e-05,
+      "avg_max_pressure": 0.0027925368880171936,
+      "std_max_pressure": 0.0010338228527793521,
+      "sensitivity_total": 0.04703279749816752,
+      "sensitivity_mean": 1.1482616576701055e-05,
+      "sensitivity_max": 0.0005699054873504478,
+      "cv": 0.41306622388748865,
+      "baseline_corrected": true
+    }
+  },
+  "overall_sensitivity": {
+    "avg_sensitivity_total": 0.060811899825829394,
+    "avg_sensitivity_mean": 1.484665523091538e-05,
+    "avg_sensitivity_max": 0.0012605530301156057,
+    "std_sensitivity_total": 0.009115530469085467,
+    "std_sensitivity_mean": 2.225471305929069e-06,
+    "std_sensitivity_max": 0.00041313281073162325,
+    "cv_sensitivity_total": 0.14989714998533418,
+    "measurement_points": 4,
+    "total_measurements": 40
+  }
+}

@@ -1,0 +1,363 @@
+{
+  "timestamp": "2025-08-01T10:48:38.483232",
+  "guide_positions": {
+    "center": {
+      "name": "中心位置",
+      "x": 32,
+      "y": 32,
+      "description": "传感器中心位置"
+    },
+    "top_left": {
+      "name": "左上角",
+      "x": 16,
+      "y": 16,
+      "description": "左上角位置"
+    },
+    "top_right": {
+      "name": "右上角",
+      "x": 48,
+      "y": 16,
+      "description": "右上角位置"
+    },
+    "bottom_left": {
+      "name": "左下角",
+      "x": 16,
+      "y": 48,
+      "description": "左下角位置"
+    },
+    "bottom_right": {
+      "name": "右下角",
+      "x": 48,
+      "y": 48,
+      "description": "右下角位置"
+    },
+    "top_center": {
+      "name": "上中位置",
+      "x": 32,
+      "y": 16,
+      "description": "上中位置"
+    },
+    "bottom_center": {
+      "name": "下中位置",
+      "x": 32,
+      "y": 48,
+      "description": "下中位置"
+    },
+    "left_center": {
+      "name": "左中位置",
+      "x": 16,
+      "y": 32,
+      "description": "左中位置"
+    },
+    "right_center": {
+      "name": "右中位置",
+      "x": 48,
+      "y": 32,
+      "description": "右中位置"
+    }
+  },
+  "consistency_results": {
+    "center": {
+      "1": {
+        "weight_info": {
+          "mass": 50.0,
+          "unit": "g",
+          "force": 0.49
+        },
+        "measurement_count": 10,
+        "avg_total_pressure": 0.11710899318007743,
+        "std_total_pressure": 0.0004650386827539483,
+        "avg_mean_pressure": 2.8591062788104842e-05,
+        "std_mean_pressure": 1.1353483465672566e-07,
+        "avg_max_pressure": 0.0013589088220164597,
+        "std_max_pressure": 4.265223817308628e-05,
+        "cv": 0.003970990358006601,
+        "cv_total": 0.003970990358006601,
+        "cv_mean": 0.003970990358006601,
+        "cv_max": 0.031387122875393074,
+        "sensitivity_total": 0.23899794526546417
+      },
+      "2": {
+        "weight_info": {
+          "mass": 100.0,
+          "unit": "g",
+          "force": 0.98
+        },
+        "measurement_count": 10,
+        "avg_total_pressure": 0.16198942246087586,
+        "std_total_pressure": 0.0007731576489020029,
+        "avg_mean_pressure": 3.954819884298727e-05,
+        "std_mean_pressure": 1.8875919162646555e-07,
+        "avg_max_pressure": 0.0028573987610946683,
+        "std_max_pressure": 2.4643880529708542e-05,
+        "cv": 0.00477288971808476,
+        "cv_total": 0.00477288971808476,
+        "cv_mean": 0.00477288971808476,
+        "cv_max": 0.008624585712449697,
+        "sensitivity_total": 0.16529532904171007
+      },
+      "3": {
+        "weight_info": {
+          "mass": 150.0,
+          "unit": "g",
+          "force": 1.47
+        },
+        "measurement_count": 10,
+        "avg_total_pressure": 0.2136922886378516,
+        "std_total_pressure": 0.0006020589377627273,
+        "avg_mean_pressure": 5.217096890572549e-05,
+        "std_mean_pressure": 1.4698704535222835e-07,
+        "avg_max_pressure": 0.0035227469720783946,
+        "std_max_pressure": 9.953425480769183e-06,
+        "cv": 0.0028174106871167825,
+        "cv_total": 0.0028174106871167825,
+        "cv_mean": 0.0028174106871167825,
+        "cv_max": 0.0028254727233210097,
+        "sensitivity_total": 0.1453689038352732
+      }
+    },
+    "top_left": {
+      "1": {
+        "weight_info": {
+          "mass": 50.0,
+          "unit": "g",
+          "force": 0.49
+        },
+        "measurement_count": 10,
+        "avg_total_pressure": 0.09003918786791248,
+        "std_total_pressure": 0.0006031999754811989,
+        "avg_mean_pressure": 2.198222360056457e-05,
+        "std_mean_pressure": 1.4726561901396457e-07,
+        "avg_max_pressure": 0.0010184482924875326,
+        "std_max_pressure": 2.6534461472537504e-05,
+        "cv": 0.006699304933381823,
+        "cv_total": 0.006699304933381823,
+        "cv_mean": 0.006699304933381823,
+        "cv_max": 0.02605381310790732,
+        "sensitivity_total": 0.18375344462839283
+      },
+      "2": {
+        "weight_info": {
+          "mass": 100.0,
+          "unit": "g",
+          "force": 0.98
+        },
+        "measurement_count": 10,
+        "avg_total_pressure": 0.10776633539177664,
+        "std_total_pressure": 0.000536298010988372,
+        "avg_mean_pressure": 2.631014047650797e-05,
+        "std_mean_pressure": 1.3093213158895802e-07,
+        "avg_max_pressure": 0.0011148876060704898,
+        "std_max_pressure": 1.460086824756162e-05,
+        "cv": 0.004976489262984584,
+        "cv_total": 0.004976489262984584,
+        "cv_mean": 0.004976489262984584,
+        "cv_max": 0.01309626922755339,
+        "sensitivity_total": 0.10996564835895577
+      },
+      "3": {
+        "weight_info": {
+          "mass": 150.0,
+          "unit": "g",
+          "force": 1.47
+        },
+        "measurement_count": 10,
+        "avg_total_pressure": 0.14560210659554934,
+        "std_total_pressure": 0.0007157977556203748,
+        "avg_mean_pressure": 3.554738930555404e-05,
+        "std_mean_pressure": 1.7475531143075556e-07,
+        "avg_max_pressure": 0.0015224353800791996,
+        "std_max_pressure": 1.9875572985291916e-05,
+        "cv": 0.0049161222482082875,
+        "cv_total": 0.0049161222482082875,
+        "cv_mean": 0.0049161222482082875,
+        "cv_max": 0.013055117639382472,
+        "sensitivity_total": 0.09904905210581588
+      }
+    },
+    "top_right": {
+      "1": {
+        "weight_info": {
+          "mass": 50.0,
+          "unit": "g",
+          "force": 0.49
+        },
+        "measurement_count": 10,
+        "avg_total_pressure": 0.08970214612701735,
+        "std_total_pressure": 0.000100309738310092,
+        "avg_mean_pressure": 2.1899938019291346e-05,
+        "std_mean_pressure": 2.4489682204612304e-08,
+        "avg_max_pressure": 0.0010525398969706797,
+        "std_max_pressure": 8.131739760445503e-06,
+        "cv": 0.001118253493824489,
+        "cv_total": 0.001118253493824489,
+        "cv_mean": 0.001118253493824489,
+        "cv_max": 0.0077258256754442305,
+        "sensitivity_total": 0.18306560434085173
+      },
+      "2": {
+        "weight_info": {
+          "mass": 100.0,
+          "unit": "g",
+          "force": 0.98
+        },
+        "measurement_count": 10,
+        "avg_total_pressure": 0.10189104726102423,
+        "std_total_pressure": 0.0004310400435846856,
+        "avg_mean_pressure": 2.4875743960210993e-05,
+        "std_mean_pressure": 1.0523438564079238e-07,
+        "avg_max_pressure": 0.0013164436928778415,
+        "std_max_pressure": 2.498636415002294e-05,
+        "cv": 0.004230401543331362,
+        "cv_total": 0.004230401543331362,
+        "cv_mean": 0.004230401543331362,
+        "cv_max": 0.01898019967371406,
+        "sensitivity_total": 0.10397045638880023
+      },
+      "3": {
+        "weight_info": {
+          "mass": 150.0,
+          "unit": "g",
+          "force": 1.47
+        },
+        "measurement_count": 10,
+        "avg_total_pressure": 0.12444358528584706,
+        "std_total_pressure": 0.0005014446277339438,
+        "avg_mean_pressure": 3.0381734688927506e-05,
+        "std_mean_pressure": 1.2242300481785737e-07,
+        "avg_max_pressure": 0.0021038870061023166,
+        "std_max_pressure": 3.575269644947243e-05,
+        "cv": 0.004029493578010669,
+        "cv_total": 0.004029493578010669,
+        "cv_mean": 0.004029493578010669,
+        "cv_max": 0.016993639081268084,
+        "sensitivity_total": 0.08465550019445378
+      }
+    },
+    "bottom_left": {
+      "1": {
+        "weight_info": {
+          "mass": 50.0,
+          "unit": "g",
+          "force": 0.49
+        },
+        "measurement_count": 10,
+        "avg_total_pressure": 0.09460304011347329,
+        "std_total_pressure": 0.00031533019212338725,
+        "avg_mean_pressure": 2.309644534020344e-05,
+        "std_mean_pressure": 7.698491018637384e-08,
+        "avg_max_pressure": 0.0015322242861305338,
+        "std_max_pressure": 1.53796093192527e-05,
+        "cv": 0.0033331930109768023,
+        "cv_total": 0.0033331930109768023,
+        "cv_mean": 0.0033331930109768023,
+        "cv_max": 0.010037439987387379,
+        "sensitivity_total": 0.1930674288030067
+      },
+      "2": {
+        "weight_info": {
+          "mass": 100.0,
+          "unit": "g",
+          "force": 0.98
+        },
+        "measurement_count": 10,
+        "avg_total_pressure": 0.11074906794779822,
+        "std_total_pressure": 0.0010543073679369545,
+        "avg_mean_pressure": 2.7038346666942925e-05,
+        "std_mean_pressure": 2.5739925975023304e-07,
+        "avg_max_pressure": 0.0016399598517439495,
+        "std_max_pressure": 0.00018227402814181303,
+        "cv": 0.009519785470645263,
+        "cv_total": 0.009519785470645263,
+        "cv_mean": 0.009519785470645263,
+        "cv_max": 0.11114542099794762,
+        "sensitivity_total": 0.11300925300795737
+      },
+      "3": {
+        "weight_info": {
+          "mass": 150.0,
+          "unit": "g",
+          "force": 1.47
+        },
+        "measurement_count": 10,
+        "avg_total_pressure": 0.1390727083253543,
+        "std_total_pressure": 0.0015451127047991916,
+        "avg_mean_pressure": 3.39532979309947e-05,
+        "std_mean_pressure": 3.7722478144511514e-07,
+        "avg_max_pressure": 0.0020446748889131694,
+        "std_max_pressure": 0.00010679834813663588,
+        "cv": 0.011110107248249387,
+        "cv_total": 0.011110107248249387,
+        "cv_mean": 0.011110107248249387,
+        "cv_max": 0.05223243495370733,
+        "sensitivity_total": 0.09460728457507095
+      }
+    },
+    "bottom_right": {
+      "1": {
+        "weight_info": {
+          "mass": 50.0,
+          "unit": "g",
+          "force": 0.49
+        },
+        "measurement_count": 10,
+        "avg_total_pressure": 0.09315596961149965,
+        "std_total_pressure": 0.000622844949120638,
+        "avg_mean_pressure": 2.274315664343253e-05,
+        "std_mean_pressure": 1.5206175515640576e-07,
+        "avg_max_pressure": 0.0014411996008055282,
+        "std_max_pressure": 1.7553210387218626e-05,
+        "cv": 0.006686044401858181,
+        "cv_total": 0.006686044401858181,
+        "cv_mean": 0.006686044401858181,
+        "cv_max": 0.012179583159340058,
+        "sensitivity_total": 0.19011422369693806
+      },
+      "2": {
+        "weight_info": {
+          "mass": 100.0,
+          "unit": "g",
+          "force": 0.98
+        },
+        "measurement_count": 10,
+        "avg_total_pressure": 0.11098131564454956,
+        "std_total_pressure": 0.0005878352155281105,
+        "avg_mean_pressure": 2.7095047764782608e-05,
+        "std_mean_pressure": 1.435144569160426e-07,
+        "avg_max_pressure": 0.0016064740772275387,
+        "std_max_pressure": 3.7982023687886854e-05,
+        "cv": 0.005296704333645011,
+        "cv_total": 0.005296704333645011,
+        "cv_mean": 0.005296704333645011,
+        "cv_max": 0.02364309777935317,
+        "sensitivity_total": 0.113246240453622
+      },
+      "3": {
+        "weight_info": {
+          "mass": 150.0,
+          "unit": "g",
+          "force": 1.47
+        },
+        "measurement_count": 10,
+        "avg_total_pressure": 0.13524246466143441,
+        "std_total_pressure": 0.00040133389366268116,
+        "avg_mean_pressure": 3.301817984898301e-05,
+        "std_mean_pressure": 9.798190763249052e-08,
+        "avg_max_pressure": 0.0019039275039845916,
+        "std_max_pressure": 1.317043989460597e-05,
+        "cv": 0.0029675138993316874,
+        "cv_total": 0.0029675138993316874,
+        "cv_mean": 0.0029675138993316874,
+        "cv_max": 0.006917511232461589,
+        "sensitivity_total": 0.09200167664043157
+      }
+    }
+  },
+  "analysis_summary": {
+    "avg_cv": 0.005096313612510379,
+    "std_cv": 0.0024877598094106244,
+    "avg_sensitivity": 0.14067786608911628,
+    "std_sensitivity": 0.046409598760101534,
+    "position_consistency_cv": 0.1529994655262099
+  }
+}
