@@ -1,0 +1,39 @@
+{
+  "test_report": {
+    "test_info": {
+      "test_date": "",
+      "test_type": "uniform_pressure_test",
+      "operator": "",
+      "sensor_id": "",
+      "test_environment": {
+        "temperature": "",
+        "humidity": "",
+        "location": ""
+      }
+    },
+    "test_conditions": {
+      "pressure_method": "",
+      "surface_type": "",
+      "test_duration": "",
+      "sampling_rate": "",
+      "test_count": ""
+    },
+    "results": {
+      "spatial_consistency": {
+        "average_cv": "",
+        "cv_range": "",
+        "uniformity_score": ""
+      },
+      "temporal_stability": {
+        "temporal_cv": "",
+        "stability_trend": "",
+        "is_stable": ""
+      },
+      "overall_assessment": {
+        "quality_rating": "",
+        "recommendations": []
+      }
+    },
+    "notes": ""
+  }
+}

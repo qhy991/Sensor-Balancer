@@ -1,0 +1,89 @@
+{
+  "timestamp": "2025-08-01T16:10:33.199406",
+  "guide_positions": {
+    "center": {
+      "name": "中心位置",
+      "x": 32,
+      "y": 32,
+      "description": "传感器中心位置"
+    },
+    "top_left": {
+      "name": "左上角",
+      "x": 16,
+      "y": 16,
+      "description": "左上角位置"
+    },
+    "top_right": {
+      "name": "右上角",
+      "x": 48,
+      "y": 16,
+      "description": "右上角位置"
+    },
+    "bottom_left": {
+      "name": "左下角",
+      "x": 16,
+      "y": 48,
+      "description": "左下角位置"
+    },
+    "bottom_right": {
+      "name": "右下角",
+      "x": 48,
+      "y": 48,
+      "description": "右下角位置"
+    },
+    "top_center": {
+      "name": "上中位置",
+      "x": 32,
+      "y": 16,
+      "description": "上中位置"
+    },
+    "bottom_center": {
+      "name": "下中位置",
+      "x": 32,
+      "y": 48,
+      "description": "下中位置"
+    },
+    "left_center": {
+      "name": "左中位置",
+      "x": 16,
+      "y": 32,
+      "description": "左中位置"
+    },
+    "right_center": {
+      "name": "右中位置",
+      "x": 48,
+      "y": 32,
+      "description": "右中位置"
+    }
+  },
+  "consistency_results": {
+    "right_center": {
+      "5": {
+        "weight_info": {
+          "mass": 550.0,
+          "unit": "g",
+          "force": 5.39
+        },
+        "measurement_count": 20,
+        "avg_total_pressure": 0.3024407189955694,
+        "std_total_pressure": 0.00036783266999933277,
+        "avg_mean_pressure": 7.383806616102769e-05,
+        "std_mean_pressure": 8.980289794905585e-08,
+        "avg_max_pressure": 0.0014564913339973162,
+        "std_max_pressure": 2.379539629632338e-05,
+        "cv": 0.001216214110391403,
+        "cv_total": 0.001216214110391403,
+        "cv_mean": 0.001216214110391403,
+        "cv_max": 0.0163374788032671,
+        "sensitivity_total": 0.05611145064852865
+      }
+    }
+  },
+  "analysis_summary": {
+    "avg_cv": 0.001216214110391403,
+    "std_cv": 0.0,
+    "avg_sensitivity": 0.05611145064852865,
+    "std_sensitivity": 0.0,
+    "position_consistency_cv": 0.0
+  }
+}

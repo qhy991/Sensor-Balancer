@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
 from PyQt5.QtCore import QTimer
 import json
 from datetime import datetime
+import os # Added for file size calculation
 
 class UniformObjectCalibration(QWidget):
     """基于均匀物体的校正系统"""
@@ -99,17 +100,31 @@ class UniformObjectCalibration(QWidget):
         self.analyze_btn.clicked.connect(self.analyze_and_generate_correction)
         self.analyze_btn.setEnabled(False)
         
+        # 保存和加载控制
+        save_load_layout = QHBoxLayout()
+        
         self.save_reference_btn = QPushButton("保存参考数据")
         self.save_reference_btn.clicked.connect(self.save_reference_data)
         self.save_reference_btn.setEnabled(False)
         
+        self.save_raw_frames_btn = QPushButton("保存原始帧数据")
+        self.save_raw_frames_btn.clicked.connect(self.save_raw_frames_data)
+        self.save_raw_frames_btn.setEnabled(False)
+        
         self.load_reference_btn = QPushButton("加载参考数据")
         self.load_reference_btn.clicked.connect(self.load_reference_data)
         
+        self.load_raw_frames_btn = QPushButton("加载原始帧数据")
+        self.load_raw_frames_btn.clicked.connect(self.load_raw_frames_data)
+        
+        save_load_layout.addWidget(self.save_reference_btn)
+        save_load_layout.addWidget(self.save_raw_frames_btn)
+        save_load_layout.addWidget(self.load_reference_btn)
+        save_load_layout.addWidget(self.load_raw_frames_btn)
+        save_load_layout.addStretch()
+        
         analysis_control_layout.addWidget(self.analyze_btn)
-        analysis_control_layout.addWidget(self.save_reference_btn)
-        analysis_control_layout.addWidget(self.load_reference_btn)
-        analysis_control_layout.addStretch()
+        analysis_control_layout.addLayout(save_load_layout)
         
         # 分析结果显示
         self.analysis_results = QTextEdit()
@@ -253,6 +268,7 @@ class UniformObjectCalibration(QWidget):
         # 更新UI状态
         self.analyze_btn.setEnabled(True)
         self.save_reference_btn.setEnabled(True)
+        self.save_raw_frames_btn.setEnabled(True)  # 启用保存原始帧数据按钮
         self.collection_status.setText(f"状态: 参考数据收集完成 ({len(self.collected_frames)} 帧)")
         
         QMessageBox.information(self, "收集完成", f"已成功收集 {len(self.collected_frames)} 帧参考数据")
@@ -426,6 +442,51 @@ class UniformObjectCalibration(QWidget):
             except Exception as e:
                 QMessageBox.critical(self, "错误", f"保存失败: {e}")
     
+    def save_raw_frames_data(self):
+        """保存所有原始帧数据"""
+        if not self.collected_frames:
+            QMessageBox.warning(self, "警告", "没有原始帧数据可保存")
+            return
+        
+        filename, _ = QFileDialog.getSaveFileName(
+            self, "保存原始帧数据", "", "Numpy压缩文件 (*.npz);;JSON文件 (*.json)"
+        )
+        
+        if filename:
+            try:
+                if filename.endswith('.npz'):
+                    # 保存为NumPy压缩格式，包含所有帧数据
+                    frames_array = np.array(self.collected_frames)
+                    np.savez_compressed(
+                        filename,
+                        frames=frames_array,
+                        reference_data=self.reference_data if self.reference_data is not None else np.array([]),
+                        timestamp=datetime.now().isoformat(),
+                        frame_count=len(self.collected_frames),
+                        frame_shape=frames_array.shape[1:] if len(frames_array.shape) > 1 else frames_array.shape
+                    )
+                else:
+                    # 保存为JSON格式
+                    data_dict = {
+                        'frames': [frame.tolist() for frame in self.collected_frames],
+                        'reference_data': self.reference_data.tolist() if self.reference_data is not None else [],
+                        'timestamp': datetime.now().isoformat(),
+                        'frame_count': len(self.collected_frames),
+                        'frame_shape': list(self.collected_frames[0].shape) if self.collected_frames else []
+                    }
+                    with open(filename, 'w') as f:
+                        json.dump(data_dict, f, indent=2)
+                
+                file_size = os.path.getsize(filename)
+                QMessageBox.information(
+                    self, "成功", 
+                    f"原始帧数据已保存到: {filename}\n"
+                    f"包含 {len(self.collected_frames)} 帧数据\n"
+                    f"文件大小: {file_size/1024:.1f} KB"
+                )
+            except Exception as e:
+                QMessageBox.critical(self, "错误", f"保存失败: {e}")
+    
     def load_reference_data(self):
         """加载参考数据"""
         filename, _ = QFileDialog.getOpenFileName(
@@ -444,6 +505,49 @@ class UniformObjectCalibration(QWidget):
                 self.analyze_btn.setEnabled(True)
                 self.save_reference_btn.setEnabled(True)
                 QMessageBox.information(self, "成功", f"参考数据已从 {filename} 加载")
+                
+            except Exception as e:
+                QMessageBox.critical(self, "错误", f"加载失败: {e}")
+    
+    def load_raw_frames_data(self):
+        """加载原始帧数据"""
+        filename, _ = QFileDialog.getOpenFileName(
+            self, "加载原始帧数据", "", "Numpy压缩文件 (*.npz);;JSON文件 (*.json)"
+        )
+        
+        if filename:
+            try:
+                if filename.endswith('.npz'):
+                    # 加载NumPy压缩格式
+                    data = np.load(filename)
+                    self.collected_frames = [frame for frame in data['frames']]
+                    if 'reference_data' in data and len(data['reference_data']) > 0:
+                        self.reference_data = data['reference_data']
+                    else:
+                        # 重新计算参考数据
+                        self.reference_data = np.mean(self.collected_frames, axis=0)
+                else:
+                    # 加载JSON格式
+                    with open(filename, 'r') as f:
+                        data_dict = json.load(f)
+                    self.collected_frames = [np.array(frame) for frame in data_dict['frames']]
+                    if data_dict.get('reference_data'):
+                        self.reference_data = np.array(data_dict['reference_data'])
+                    else:
+                        # 重新计算参考数据
+                        self.reference_data = np.mean(self.collected_frames, axis=0)
+                
+                # 更新UI状态
+                self.analyze_btn.setEnabled(True)
+                self.save_reference_btn.setEnabled(True)
+                self.save_raw_frames_btn.setEnabled(True)
+                self.collection_status.setText(f"状态: 已加载 {len(self.collected_frames)} 帧原始数据")
+                
+                QMessageBox.information(
+                    self, "成功", 
+                    f"原始帧数据已从 {filename} 加载\n"
+                    f"包含 {len(self.collected_frames)} 帧数据"
+                )
                 
             except Exception as e:
                 QMessageBox.critical(self, "错误", f"加载失败: {e}")

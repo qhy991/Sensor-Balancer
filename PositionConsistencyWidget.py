@@ -170,6 +170,10 @@ class PositionConsistencyWidget(QWidget):
         self.linearity_analysis = {}  # 存储线性度分析结果
         self.analysis_results = {}  # 存储完整分析结果
         
+        # 图表窗口引用，防止被垃圾回收
+        self.current_analysis_plot_window = None
+        self.current_analysis_main_window = None
+        
         # 初始化UI
         self.init_ui()
         
@@ -398,6 +402,11 @@ class PositionConsistencyWidget(QWidget):
         self.run_full_analysis_btn.clicked.connect(self.run_full_analysis)
         self.run_full_analysis_btn.setToolTip("运行位置一致性和线性度完整分析")
         
+        self.show_analysis_plots_btn = QPushButton("显示分析图表")
+        self.show_analysis_plots_btn.clicked.connect(self.show_analysis_plots)
+        self.show_analysis_plots_btn.setToolTip("显示位置一致性和线性度分析图表")
+        self.show_analysis_plots_btn.setEnabled(False)  # 初始状态禁用
+        
         self.save_analysis_results_btn = QPushButton("保存分析结果")
         self.save_analysis_results_btn.clicked.connect(self.save_analysis_results)
         self.save_analysis_results_btn.setEnabled(False)
@@ -405,6 +414,7 @@ class PositionConsistencyWidget(QWidget):
         analysis_buttons_layout.addWidget(self.analyze_position_consistency_btn)
         analysis_buttons_layout.addWidget(self.analyze_linearity_btn)
         analysis_buttons_layout.addWidget(self.run_full_analysis_btn)
+        analysis_buttons_layout.addWidget(self.show_analysis_plots_btn)
         analysis_buttons_layout.addWidget(self.save_analysis_results_btn)
         analysis_buttons_layout.addStretch()
         
@@ -1860,5 +1870,788 @@ class PositionConsistencyWidget(QWidget):
                 print(f"❌ 显示原始图表窗口也失败: {e2}")
                 QMessageBox.critical(self, "错误", f"无法显示图表窗口: {e2}")
     
+    # ==================== 位置一致性和线性度分析方法 ====================
     
+    def analyze_position_consistency(self):
+        """分析同一砝码在不同位置的压力一致性"""
+        if not MATPLOTLIB_AVAILABLE:
+            QMessageBox.warning(self, "警告", "Matplotlib不可用，无法进行分析")
+            return
+        
+        if not SCIPY_AVAILABLE:
+            QMessageBox.warning(self, "警告", "SciPy不可用，无法进行统计分析")
+            return
+        
+        print("\n🔍 开始位置一致性分析...")
+        
+        # 检查是否有足够的数据
+        if not self.consistency_results:
+            QMessageBox.warning(self, "警告", "没有一致性测试数据，请先进行位置一致性测试")
+            return
+        
+        # 收集所有砝码ID
+        weight_ids = set()
+        for position_results in self.consistency_results.values():
+            weight_ids.update(position_results.keys())
+        weight_ids = sorted(list(weight_ids))
+        
+        if len(weight_ids) == 0:
+            QMessageBox.warning(self, "警告", "没有找到砝码数据")
+            return
+        
+        position_analysis = {}
+        
+        for weight_id in weight_ids:
+            print(f"\n📊 分析砝码 {weight_id} 在不同位置的一致性:")
+            
+            # 收集该砝码在所有位置的数据
+            weight_data = {}
+            for position_id, position_results in self.consistency_results.items():
+                if weight_id in position_results:
+                    result = position_results[weight_id]
+                    sensitivity = result.get('sensitivity_total', 0)
+                    cv = result.get('cv', 0)
+                    avg_pressure = result.get('avg_total_pressure', 0)
+                    
+                    weight_data[position_id] = {
+                        'sensitivity': sensitivity,
+                        'cv': cv,
+                        'avg_pressure': avg_pressure,
+                        'position_name': self.guide_positions.get(position_id, {}).get('name', position_id)
+                    }
+            
+            if len(weight_data) > 1:
+                # 计算统计信息
+                sensitivities = [data['sensitivity'] for data in weight_data.values()]
+                pressures = [data['avg_pressure'] for data in weight_data.values()]
+                cvs = [data['cv'] for data in weight_data.values()]
+                
+                # 位置一致性指标
+                mean_sensitivity = np.mean(sensitivities)
+                std_sensitivity = np.std(sensitivities)
+                cv_sensitivity = std_sensitivity / mean_sensitivity if mean_sensitivity > 0 else 0
+                
+                mean_pressure = np.mean(pressures)
+                std_pressure = np.std(pressures)
+                cv_pressure = std_pressure / mean_pressure if mean_pressure > 0 else 0
+                
+                # 位置间变异系数
+                position_consistency_cv = cv_sensitivity
+                
+                # 评估一致性等级
+                if position_consistency_cv < 0.05:
+                    consistency_grade = "优秀"
+                elif position_consistency_cv < 0.1:
+                    consistency_grade = "良好"
+                elif position_consistency_cv < 0.2:
+                    consistency_grade = "一般"
+                else:
+                    consistency_grade = "较差"
+                
+                position_analysis[weight_id] = {
+                    'weight_data': weight_data,
+                    'statistics': {
+                        'mean_sensitivity': mean_sensitivity,
+                        'std_sensitivity': std_sensitivity,
+                        'cv_sensitivity': cv_sensitivity,
+                        'mean_pressure': mean_pressure,
+                        'std_pressure': std_pressure,
+                        'cv_pressure': cv_pressure,
+                        'position_consistency_cv': position_consistency_cv,
+                        'consistency_grade': consistency_grade
+                    },
+                    'positions_count': len(weight_data)
+                }
+                
+                print(f"  位置数量: {len(weight_data)}")
+                print(f"  平均敏感性: {mean_sensitivity:.6f} ± {std_sensitivity:.6f}")
+                print(f"  位置一致性CV: {position_consistency_cv:.3f} ({consistency_grade})")
+                print(f"  位置列表: {list(weight_data.keys())}")
+            else:
+                print(f"  警告: 砝码 {weight_id} 只有一个位置的数据，无法进行一致性分析")
+        
+        self.position_analysis = position_analysis
+        
+        # 显示分析结果
+        self.display_position_consistency_results(position_analysis)
+        
+        return position_analysis
     
+    def analyze_linearity(self):
+        """分析不同砝码在同一位置的压力线性关系"""
+        if not MATPLOTLIB_AVAILABLE:
+            QMessageBox.warning(self, "警告", "Matplotlib不可用，无法进行分析")
+            return
+        
+        if not SCIPY_AVAILABLE:
+            QMessageBox.warning(self, "警告", "SciPy不可用，无法进行统计分析")
+            return
+        
+        print("\n🔍 开始线性度分析...")
+        
+        # 检查是否有足够的数据
+        if not self.consistency_results:
+            QMessageBox.warning(self, "警告", "没有一致性测试数据，请先进行位置一致性测试")
+            return
+        
+        linearity_analysis = {}
+        
+        for position_id, position_results in self.consistency_results.items():
+            position_name = self.guide_positions.get(position_id, {}).get('name', position_id)
+            print(f"\n📊 分析位置 {position_name} ({position_id}) 的线性关系:")
+            
+            # 收集该位置所有砝码的数据
+            position_data = {}
+            for weight_id, result in position_results.items():
+                sensitivity = result.get('sensitivity_total', 0)
+                avg_pressure = result.get('avg_total_pressure', 0)
+                weight_info = result.get('weight_info', {})
+                mass = weight_info.get('mass', 0)
+                force = weight_info.get('force', 0)
+                
+                position_data[weight_id] = {
+                    'sensitivity': sensitivity,
+                    'avg_pressure': avg_pressure,
+                    'mass': mass,
+                    'force': force
+                }
+            
+            if len(position_data) > 2:  # 至少需要3个点才能分析线性关系
+                # 准备数据
+                weights = [data['mass'] for data in position_data.values()]
+                pressures = [data['avg_pressure'] for data in position_data.values()]
+                forces = [data['force'] for data in position_data.values()]
+                
+                # 线性回归分析（质量 vs 压力）
+                slope_mass, intercept_mass, r_value_mass, p_value_mass, std_err_mass = stats.linregress(weights, pressures)
+                r_squared_mass = r_value_mass ** 2
+                
+                # 线性回归分析（力 vs 压力）
+                slope_force, intercept_force, r_value_force, p_value_force, std_err_force = stats.linregress(forces, pressures)
+                r_squared_force = r_value_force ** 2
+                
+                # 计算理论斜率（基于重力加速度）
+                theoretical_slope = 0.0098  # g = 9.8 m/s²
+                
+                # 计算线性度误差
+                linearity_error_mass = abs(slope_mass - theoretical_slope) / theoretical_slope * 100
+                linearity_error_force = abs(slope_force - 1.0) * 100  # 理想情况下力与压力应该1:1
+                
+                # 评估线性度等级
+                if linearity_error_mass < 5:
+                    linearity_grade = "优秀"
+                elif linearity_error_mass < 10:
+                    linearity_grade = "良好"
+                elif linearity_error_mass < 20:
+                    linearity_grade = "一般"
+                else:
+                    linearity_grade = "较差"
+                
+                # 计算残差
+                predicted_pressures_mass = [slope_mass * w + intercept_mass for w in weights]
+                residuals_mass = [p - pred for p, pred in zip(pressures, predicted_pressures_mass)]
+                
+                predicted_pressures_force = [slope_force * f + intercept_force for f in forces]
+                residuals_force = [p - pred for p, pred in zip(pressures, predicted_pressures_force)]
+                
+                linearity_analysis[position_id] = {
+                    'position_name': position_name,
+                    'position_data': position_data,
+                    'mass_analysis': {
+                        'weights': weights,
+                        'pressures': pressures,
+                        'slope': slope_mass,
+                        'intercept': intercept_mass,
+                        'r_squared': r_squared_mass,
+                        'p_value': p_value_mass,
+                        'std_err': std_err_mass,
+                        'linearity_error': linearity_error_mass,
+                        'predicted': predicted_pressures_mass,
+                        'residuals': residuals_mass
+                    },
+                    'force_analysis': {
+                        'forces': forces,
+                        'pressures': pressures,
+                        'slope': slope_force,
+                        'intercept': intercept_force,
+                        'r_squared': r_squared_force,
+                        'p_value': p_value_force,
+                        'std_err': std_err_force,
+                        'linearity_error': linearity_error_force,
+                        'predicted': predicted_pressures_force,
+                        'residuals': residuals_force
+                    },
+                    'linearity_grade': linearity_grade,
+                    'weights_count': len(position_data)
+                }
+                
+                print(f"  砝码数量: {len(position_data)}")
+                print(f"  质量-压力线性度: R² = {r_squared_mass:.4f}, 斜率 = {slope_mass:.6f}")
+                print(f"  线性度误差: {linearity_error_mass:.2f}% ({linearity_grade})")
+                print(f"  砝码列表: {list(position_data.keys())}")
+            else:
+                print(f"  警告: 位置 {position_name} 只有 {len(position_data)} 个砝码的数据，无法进行线性分析")
+        
+        self.linearity_analysis = linearity_analysis
+        
+        # 显示分析结果
+        self.display_linearity_results(linearity_analysis)
+        
+        return linearity_analysis
+    
+    def run_full_analysis(self):
+        """运行完整的位置一致性和线性度分析"""
+        print("🚀 开始完整的位置一致性和线性度分析")
+        print("=" * 60)
+        
+        # 运行位置一致性分析
+        position_results = self.analyze_position_consistency()
+        
+        # 运行线性度分析
+        linearity_results = self.analyze_linearity()
+        
+        # 生成时间戳
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        
+        # 保存结果
+        self.analysis_results = {
+            'timestamp': timestamp,
+            'position_analysis': position_results,
+            'linearity_analysis': linearity_results,
+            'summary': {
+                'total_positions': len(self.guide_positions),
+                'total_weights': len(set().union(*[set(pos.keys()) for pos in self.consistency_results.values()])),
+                'position_analysis_count': len(position_results),
+                'linearity_analysis_count': len(linearity_results)
+            }
+        }
+        
+        # 启用保存按钮
+        self.save_analysis_results_btn.setEnabled(True)
+        
+        # 启用图表按钮
+        self.show_analysis_plots_btn.setEnabled(True)
+        
+        # 显示完整分析结果
+        self.display_full_analysis_results()
+        
+        # 自动创建和显示分析图表
+        if position_results or linearity_results:
+            print("\n📊 创建分析图表...")
+            try:
+                plot_window = self.create_analysis_plots()
+                if plot_window:
+                    print("✅ 分析图表已显示")
+                else:
+                    print("⚠️ 无法创建分析图表")
+            except Exception as e:
+                print(f"❌ 创建分析图表时出错: {e}")
+                import traceback
+                traceback.print_exc()
+        else:
+            print("⚠️ 没有分析数据，无法创建图表")
+        
+        print(f"\n✅ 完整分析完成！")
+        print(f"位置一致性分析: {len(position_results)} 个砝码")
+        print(f"线性度分析: {len(linearity_results)} 个位置")
+        
+        return self.analysis_results
+    
+    def display_position_consistency_results(self, position_analysis):
+        """显示位置一致性分析结果"""
+        if not position_analysis:
+            self.analysis_results_text.append("❌ 没有位置一致性分析结果")
+            return
+        
+        result_text = "📊 位置一致性分析结果\n"
+        result_text += "=" * 50 + "\n"
+        
+        for weight_id, analysis in position_analysis.items():
+            stats = analysis['statistics']
+            result_text += f"\n砝码 {weight_id}:\n"
+            result_text += f"  位置数量: {analysis['positions_count']}\n"
+            result_text += f"  平均敏感性: {stats['mean_sensitivity']:.6f} ± {stats['std_sensitivity']:.6f}\n"
+            result_text += f"  位置一致性CV: {stats['position_consistency_cv']:.3f} ({stats['consistency_grade']})\n"
+            result_text += f"  位置列表: {list(analysis['weight_data'].keys())}\n"
+        
+        self.analysis_results_text.append(result_text)
+    
+    def display_linearity_results(self, linearity_analysis):
+        """显示线性度分析结果"""
+        if not linearity_analysis:
+            self.analysis_results_text.append("❌ 没有线性度分析结果")
+            return
+        
+        result_text = "📊 线性度分析结果\n"
+        result_text += "=" * 50 + "\n"
+        
+        for position_id, analysis in linearity_analysis.items():
+            position_name = analysis['position_name']
+            mass_analysis = analysis['mass_analysis']
+            force_analysis = analysis['force_analysis']
+            
+            result_text += f"\n位置 {position_name} ({position_id}):\n"
+            result_text += f"  砝码数量: {analysis['weights_count']}\n"
+            result_text += f"  质量-压力线性度:\n"
+            result_text += f"    斜率: {mass_analysis['slope']:.6f}\n"
+            result_text += f"    截距: {mass_analysis['intercept']:.6f}\n"
+            result_text += f"    R²: {mass_analysis['r_squared']:.4f}\n"
+            result_text += f"    线性度误差: {mass_analysis['linearity_error']:.2f}%\n"
+            result_text += f"  力-压力线性度:\n"
+            result_text += f"    斜率: {force_analysis['slope']:.6f}\n"
+            result_text += f"    截距: {force_analysis['intercept']:.6f}\n"
+            result_text += f"    R²: {force_analysis['r_squared']:.4f}\n"
+            result_text += f"    线性度误差: {force_analysis['linearity_error']:.2f}%\n"
+            result_text += f"  综合评估: {analysis['linearity_grade']}\n"
+        
+        self.analysis_results_text.append(result_text)
+    
+    def display_full_analysis_results(self):
+        """显示完整分析结果"""
+        if not self.analysis_results:
+            self.analysis_results_text.append("❌ 没有完整分析结果")
+            return
+        
+        result_text = "🚀 完整分析结果摘要\n"
+        result_text += "=" * 50 + "\n"
+        result_text += f"分析时间: {self.analysis_results['timestamp']}\n"
+        result_text += f"位置一致性分析: {self.analysis_results['summary']['position_analysis_count']} 个砝码\n"
+        result_text += f"线性度分析: {self.analysis_results['summary']['linearity_analysis_count']} 个位置\n"
+        
+        # 计算平均指标
+        if self.position_analysis:
+            avg_consistency_cv = np.mean([analysis['statistics']['position_consistency_cv'] 
+                                        for analysis in self.position_analysis.values()])
+            result_text += f"平均位置一致性CV: {avg_consistency_cv:.3f}\n"
+            
+            if avg_consistency_cv < 0.05:
+                result_text += "✅ 位置一致性优秀，传感器在不同位置的响应一致\n"
+            elif avg_consistency_cv < 0.1:
+                result_text += "✅ 位置一致性良好，建议进一步优化\n"
+            elif avg_consistency_cv < 0.2:
+                result_text += "⚠️ 位置一致性一般，建议检查传感器校准\n"
+            else:
+                result_text += "❌ 位置一致性较差，需要重新校准传感器\n"
+        
+        if self.linearity_analysis:
+            avg_r_squared = np.mean([analysis['mass_analysis']['r_squared'] 
+                                   for analysis in self.linearity_analysis.values()])
+            avg_linearity_error = np.mean([analysis['mass_analysis']['linearity_error'] 
+                                         for analysis in self.linearity_analysis.values()])
+            
+            result_text += f"平均线性度R²: {avg_r_squared:.4f}\n"
+            result_text += f"平均线性度误差: {avg_linearity_error:.2f}%\n"
+            
+            if avg_r_squared > 0.99 and avg_linearity_error < 5:
+                result_text += "✅ 线性度优秀，传感器响应线性良好\n"
+            elif avg_r_squared > 0.95 and avg_linearity_error < 10:
+                result_text += "✅ 线性度良好，建议微调校准参数\n"
+            elif avg_r_squared > 0.9 and avg_linearity_error < 20:
+                result_text += "⚠️ 线性度一般，建议检查测量过程\n"
+            else:
+                result_text += "❌ 线性度较差，需要重新校准或检查硬件\n"
+        
+        self.analysis_results_text.append(result_text)
+    
+    def save_analysis_results(self):
+        """保存分析结果"""
+        if not self.analysis_results:
+            QMessageBox.warning(self, "警告", "没有分析结果可保存")
+            return
+        
+        # 选择保存目录
+        output_dir = QFileDialog.getExistingDirectory(self, "选择保存目录", "")
+        if not output_dir:
+            return
+        
+        try:
+            # 生成时间戳
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            
+            # 保存JSON结果
+            json_path = f"{output_dir}/position_linearity_analysis_{timestamp}.json"
+            with open(json_path, 'w', encoding='utf-8') as f:
+                json.dump(self.analysis_results, f, indent=2, ensure_ascii=False)
+            
+            # 生成报告
+            report_path = f"{output_dir}/position_linearity_report_{timestamp}.txt"
+            self.generate_analysis_report(report_path)
+            
+            # 创建图表
+            plot_path = f"{output_dir}/position_linearity_plots_{timestamp}.png"
+            self.create_analysis_plots(plot_path)
+            
+            QMessageBox.information(self, "保存成功", 
+                                  f"分析结果已保存到:\n{output_dir}\n\n"
+                                  f"文件包括:\n"
+                                  f"• JSON结果: position_linearity_analysis_{timestamp}.json\n"
+                                  f"• 分析报告: position_linearity_report_{timestamp}.txt\n"
+                                  f"• 分析图表: position_linearity_plots_{timestamp}.png")
+            
+        except Exception as e:
+            QMessageBox.critical(self, "保存失败", f"保存分析结果时出错:\n{e}")
+            print(f"❌ 保存分析结果失败: {e}")
+    
+    def generate_analysis_report(self, output_path):
+        """生成分析报告"""
+        print(f"\n📄 生成分析报告...")
+        
+        report = []
+        report.append("=" * 80)
+        report.append("传感器位置一致性和线性度分析报告")
+        report.append("=" * 80)
+        report.append(f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        report.append(f"数据时间: {self.analysis_results.get('timestamp', '未知')}")
+        report.append("")
+        
+        # 任务1：位置一致性分析
+        report.append("📊 任务1：位置一致性分析（同一砝码在不同位置）")
+        report.append("-" * 60)
+        
+        if self.position_analysis:
+            for weight_id, analysis in self.position_analysis.items():
+                stats = analysis['statistics']
+                report.append(f"\n砝码 {weight_id}:")
+                report.append(f"  位置数量: {analysis['positions_count']}")
+                report.append(f"  平均敏感性: {stats['mean_sensitivity']:.6f} ± {stats['std_sensitivity']:.6f}")
+                report.append(f"  位置一致性CV: {stats['position_consistency_cv']:.3f} ({stats['consistency_grade']})")
+                report.append(f"  位置列表: {list(analysis['weight_data'].keys())}")
+        else:
+            report.append("  无位置一致性数据")
+        
+        # 任务2：线性度分析
+        report.append("\n\n📊 任务2：线性度分析（不同砝码在同一位置）")
+        report.append("-" * 60)
+        
+        if self.linearity_analysis:
+            for position_id, analysis in self.linearity_analysis.items():
+                position_name = analysis['position_name']
+                mass_analysis = analysis['mass_analysis']
+                force_analysis = analysis['force_analysis']
+                
+                report.append(f"\n位置 {position_name} ({position_id}):")
+                report.append(f"  砝码数量: {analysis['weights_count']}")
+                report.append(f"  质量-压力线性度:")
+                report.append(f"    斜率: {mass_analysis['slope']:.6f}")
+                report.append(f"    截距: {mass_analysis['intercept']:.6f}")
+                report.append(f"    R²: {mass_analysis['r_squared']:.4f}")
+                report.append(f"    线性度误差: {mass_analysis['linearity_error']:.2f}%")
+                report.append(f"  力-压力线性度:")
+                report.append(f"    斜率: {force_analysis['slope']:.6f}")
+                report.append(f"    截距: {force_analysis['intercept']:.6f}")
+                report.append(f"    R²: {force_analysis['r_squared']:.4f}")
+                report.append(f"    线性度误差: {force_analysis['linearity_error']:.2f}%")
+                report.append(f"  综合评估: {analysis['linearity_grade']}")
+        else:
+            report.append("  无线性度数据")
+        
+        # 总结和建议
+        report.append("\n\n💡 总结和建议")
+        report.append("-" * 60)
+        
+        if self.position_analysis:
+            avg_consistency_cv = np.mean([analysis['statistics']['position_consistency_cv'] 
+                                        for analysis in self.position_analysis.values()])
+            report.append(f"平均位置一致性CV: {avg_consistency_cv:.3f}")
+            
+            if avg_consistency_cv < 0.05:
+                report.append("✅ 位置一致性优秀，传感器在不同位置的响应一致")
+            elif avg_consistency_cv < 0.1:
+                report.append("✅ 位置一致性良好，建议进一步优化")
+            elif avg_consistency_cv < 0.2:
+                report.append("⚠️ 位置一致性一般，建议检查传感器校准")
+            else:
+                report.append("❌ 位置一致性较差，需要重新校准传感器")
+        
+        if self.linearity_analysis:
+            avg_r_squared = np.mean([analysis['mass_analysis']['r_squared'] 
+                                for analysis in self.linearity_analysis.values()])
+            avg_linearity_error = np.mean([analysis['mass_analysis']['linearity_error'] 
+                                        for analysis in self.linearity_analysis.values()])
+            
+            report.append(f"平均线性度R²: {avg_r_squared:.4f}")
+            report.append(f"平均线性度误差: {avg_linearity_error:.2f}%")
+            
+            if avg_r_squared > 0.99 and avg_linearity_error < 5:
+                report.append("✅ 线性度优秀，传感器响应线性良好")
+            elif avg_r_squared > 0.95 and avg_linearity_error < 10:
+                report.append("✅ 线性度良好，建议微调校准参数")
+            elif avg_r_squared > 0.9 and avg_linearity_error < 20:
+                report.append("⚠️ 线性度一般，建议检查测量过程")
+            else:
+                report.append("❌ 线性度较差，需要重新校准或检查硬件")
+        
+        # 写入报告文件
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(report))
+        
+        print(f"✅ 分析报告已保存到: {output_path}")
+        return report
+    
+    def create_analysis_plots(self, save_path=None):
+        """创建分析图表 - 使用PyQtGraph"""
+        if not PYQTGRAPH_AVAILABLE:
+            print("⚠️ PyQtGraph不可用，无法创建图表")
+            return
+        
+        print("\n📊 创建分析图表...")
+        
+        # 创建PyQtGraph窗口
+        plot_window = pg.GraphicsLayoutWidget()
+        plot_window.setWindowTitle('位置一致性和线性度分析')
+        plot_window.resize(1200, 800)
+        
+        # 保存窗口引用，防止被垃圾回收
+        self.current_analysis_plot_window = plot_window
+        
+        # 创建2x2的子图布局
+        # 位置一致性分析图（左上）
+        p1 = plot_window.addPlot(row=0, col=0)
+        p1.setTitle('位置一致性分析（同一砝码在不同位置）')
+        p1.setLabel('left', '位置一致性CV')
+        p1.setLabel('bottom', '砝码ID')
+        p1.showGrid(x=True, y=True, alpha=0.3)
+        
+        if self.position_analysis:
+            weight_ids = list(self.position_analysis.keys())
+            consistency_cvs = [self.position_analysis[wid]['statistics']['position_consistency_cv'] for wid in weight_ids]
+            grades = [self.position_analysis[wid]['statistics']['consistency_grade'] for wid in weight_ids]
+            
+            # 颜色映射 - 修复PyQtGraph颜色处理
+            colors = []
+            for grade in grades:
+                if grade == "优秀":
+                    colors.append((0, 255, 0))  # 绿色
+                elif grade == "良好":
+                    colors.append((0, 0, 255))  # 蓝色
+                elif grade == "一般":
+                    colors.append((255, 255, 0))  # 黄色
+                else:
+                    colors.append((255, 0, 0))  # 红色
+            
+            # 创建柱状图 - 为每个柱子单独设置颜色
+            x_pos = np.arange(len(weight_ids))
+            for i, (x, cv, color) in enumerate(zip(x_pos, consistency_cvs, colors)):
+                bar = pg.BarGraphItem(x=[x], height=[cv], width=0.6, brush=color)
+                p1.addItem(bar)
+            
+            # 设置x轴标签
+            ax = p1.getAxis('bottom')
+            ax.setTicks([[(i, wid) for i, wid in enumerate(weight_ids)]])
+            
+            # 添加数值标签
+            for i, (cv, grade) in enumerate(zip(consistency_cvs, grades)):
+                text = pg.TextItem(text=f'{cv:.3f}\n({grade})', anchor=(0.5, 0))
+                text.setPos(i, cv + max(consistency_cvs) * 0.05)
+                p1.addItem(text)
+        
+        # 线性度分析图（右上）
+        plot_window.nextRow()
+        p2 = plot_window.addPlot(row=1, col=0)
+        p2.setTitle('线性度分析（不同砝码在同一位置）')
+        p2.setLabel('left', 'R²值')
+        p2.setLabel('bottom', '位置')
+        p2.showGrid(x=True, y=True, alpha=0.3)
+        
+        if self.linearity_analysis:
+            position_ids = list(self.linearity_analysis.keys())
+            linearity_errors = [self.linearity_analysis[pid]['linearity_grade'] for pid in position_ids]
+            r_squared_values = [self.linearity_analysis[pid]['mass_analysis']['r_squared'] for pid in position_ids]
+            
+            # 颜色映射 - 修复PyQtGraph颜色处理
+            colors = []
+            for grade in linearity_errors:
+                if grade == "优秀":
+                    colors.append((0, 255, 0))  # 绿色
+                elif grade == "良好":
+                    colors.append((0, 0, 255))  # 蓝色
+                elif grade == "一般":
+                    colors.append((255, 255, 0))  # 黄色
+                else:
+                    colors.append((255, 0, 0))  # 红色
+            
+            # 创建柱状图 - 为每个柱子单独设置颜色
+            x_pos = np.arange(len(position_ids))
+            for i, (x, r2, color) in enumerate(zip(x_pos, r_squared_values, colors)):
+                bar = pg.BarGraphItem(x=[x], height=[r2], width=0.6, brush=color)
+                p2.addItem(bar)
+            
+            # 设置x轴标签
+            ax = p2.getAxis('bottom')
+            position_names = [self.linearity_analysis[pid]['position_name'] for pid in position_ids]
+            ax.setTicks([[(i, name) for i, name in enumerate(position_names)]])
+            
+            # 添加数值标签
+            for i, (r2, grade) in enumerate(zip(r_squared_values, linearity_errors)):
+                text = pg.TextItem(text=f'{r2:.3f}\n({grade})', anchor=(0.5, 0))
+                text.setPos(i, r2 + max(r_squared_values) * 0.05)
+                p2.addItem(text)
+        
+        # 详细线性关系图（左下）
+        p3 = plot_window.addPlot(row=0, col=1)
+        p3.setTitle('质量-压力线性关系')
+        p3.setLabel('left', '压力')
+        p3.setLabel('bottom', '质量 (g)')
+        p3.showGrid(x=True, y=True, alpha=0.3)
+        
+        if self.linearity_analysis:
+            # 选择第一个有数据的位置
+            selected_position = list(self.linearity_analysis.keys())[0]
+            pos_data = self.linearity_analysis[selected_position]
+            position_name = pos_data['position_name']
+            
+            weights = pos_data['mass_analysis']['weights']
+            pressures = pos_data['mass_analysis']['pressures']
+            predicted = pos_data['mass_analysis']['predicted']
+            
+            # 绘制散点图
+            p3.plot(weights, pressures, pen=None, symbol='o', symbolSize=8, 
+                   symbolBrush=(0, 0, 255), symbolPen=(0, 0, 255), name='实测数据')
+            
+            # 绘制拟合线
+            p3.plot(weights, predicted, pen=pg.mkPen((255, 0, 0), width=2), 
+                   name=f'拟合线 (R²={pos_data["mass_analysis"]["r_squared"]:.3f})')
+            
+            # 添加图例
+            legend = p3.addLegend()
+            legend.addItem(p3.plot([], [], pen=None, symbol='o', symbolBrush=(0, 0, 255)), '实测数据')
+            legend.addItem(p3.plot([], [], pen=pg.mkPen((255, 0, 0), width=2)), 
+                          f'拟合线 (R²={pos_data["mass_analysis"]["r_squared"]:.3f})')
+        
+        # 残差分析图（右下）
+        p4 = plot_window.addPlot(row=1, col=1)
+        p4.setTitle('残差分析')
+        p4.setLabel('left', '残差')
+        p4.setLabel('bottom', '质量 (g)')
+        p4.showGrid(x=True, y=True, alpha=0.3)
+        
+        if self.linearity_analysis:
+            selected_position = list(self.linearity_analysis.keys())[0]
+            pos_data = self.linearity_analysis[selected_position]
+            weights = pos_data['mass_analysis']['weights']
+            residuals = pos_data['mass_analysis']['residuals']
+            
+            # 绘制残差散点图
+            p4.plot(weights, residuals, pen=None, symbol='o', symbolSize=8, 
+                   symbolBrush=(0, 255, 0), symbolPen=(0, 255, 0))
+            
+            # 添加零线
+            p4.addLine(y=0, pen=pg.mkPen((255, 0, 0), style=pg.QtCore.Qt.DashLine))
+        
+        # 保存图表（如果需要）
+        if save_path:
+            try:
+                # 使用PyQtGraph的保存功能
+                exporter = pg.exporters.ImageExporter(plot_window.scene())
+                exporter.export(save_path)
+                print(f"✅ 分析图表已保存到: {save_path}")
+            except Exception as e:
+                print(f"⚠️ 保存图表失败: {e}")
+        
+        # 显示图表窗口
+        plot_window.show()
+        
+        # 添加保存按钮
+        self.add_save_button_to_analysis_plot(plot_window)
+        
+        return plot_window
+    
+    def add_save_button_to_analysis_plot(self, plot_window):
+        """在分析图表窗口中添加保存按钮"""
+        try:
+            # 创建一个包含图表和按钮的主窗口
+            main_window = QWidget()
+            main_window.setWindowTitle("位置一致性和线性度分析图表")
+            main_window.resize(plot_window.width(), plot_window.height() + 60)
+            
+            # 保存主窗口引用，防止被垃圾回收
+            self.current_analysis_main_window = main_window
+            
+            # 创建垂直布局
+            layout = QVBoxLayout()
+            
+            # 添加图表窗口
+            layout.addWidget(plot_window)
+            
+            # 创建保存按钮
+            save_button = QPushButton("保存分析图表")
+            save_button.setStyleSheet("""
+                QPushButton {
+                    background-color: #4CAF50;
+                    color: white;
+                    padding: 10px 20px;
+                    border-radius: 6px;
+                    border: none;
+                    font-weight: bold;
+                    font-size: 12px;
+                }
+                QPushButton:hover {
+                    background-color: #45a049;
+                }
+                QPushButton:pressed {
+                    background-color: #388e3c;
+                }
+            """)
+            
+            # 连接按钮点击信号到保存函数
+            save_button.clicked.connect(lambda: self.save_analysis_plot(plot_window))
+            
+            # 设置按钮大小
+            save_button.setFixedHeight(40)
+            
+            # 添加按钮到布局
+            layout.addWidget(save_button)
+            
+            # 设置主窗口布局
+            main_window.setLayout(layout)
+            
+            # 显示主窗口
+            main_window.show()
+            
+            print(f"✅ 保存按钮已添加到分析图表窗口")
+            
+        except Exception as e:
+            print(f"⚠️ 添加保存按钮失败: {e}")
+            # 如果添加保存按钮失败，直接显示原始图表窗口
+            plot_window.show()
+    
+    def save_analysis_plot(self, plot_window):
+        """保存分析图表"""
+        try:
+            filename, _ = QFileDialog.getSaveFileName(
+                self, "保存分析图表", "", "PNG文件 (*.png);;JPEG文件 (*.jpg);;所有文件 (*)"
+            )
+            
+            if filename:
+                # 使用PyQtGraph的保存功能
+                exporter = pg.exporters.ImageExporter(plot_window.scene())
+                exporter.export(filename)
+                QMessageBox.information(self, "成功", f"分析图表已保存到:\n{filename}")
+                print(f"✅ 分析图表已保存到: {filename}")
+            else:
+                print(f"💡 用户取消了保存")
+                
+        except Exception as e:
+            print(f"⚠️ 保存分析图表时出错: {e}")
+            QMessageBox.warning(self, "保存失败", f"保存图片时出错:\n{e}")
+    
+    def show_analysis_plots(self):
+        """显示分析图表"""
+        if not self.position_analysis and not self.linearity_analysis:
+            QMessageBox.warning(self, "警告", "没有分析数据，请先运行分析")
+            return
+        
+        print("\n📊 显示分析图表...")
+        try:
+            plot_window = self.create_analysis_plots()
+            if plot_window:
+                print("✅ 分析图表已显示")
+                QMessageBox.information(self, "成功", "分析图表已显示")
+            else:
+                print("⚠️ 无法创建分析图表")
+                QMessageBox.warning(self, "警告", "无法创建分析图表")
+        except Exception as e:
+            print(f"❌ 显示分析图表时出错: {e}")
+            QMessageBox.critical(self, "错误", f"显示分析图表时出错:\n{e}")
+            import traceback
+            traceback.print_exc()

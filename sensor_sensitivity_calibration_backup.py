@@ -40,7 +40,7 @@ try:
     pg.setConfigOption('useOpenGL', True)  # 使用OpenGL加�?
     pg.setConfigOption('leftButtonPan', True)  # 左键平移
     
-    print("�?PyQtGraph模块导入成功")
+    print("✅ PyQtGraph模块导入成功")
 except ImportError as e:
     print(f"⚠️ PyQtGraph未找�? {e}")
     PYQTGRAPH_AVAILABLE = False
@@ -50,7 +50,7 @@ try:
     from data_processing.data_handler import DataHandler
     from backends.usb_driver import LargeUsbSensorDriver
     DATA_HANDLER_AVAILABLE = True
-    print("�?数据处理器模块导入成�?)
+    print("✅ 数据处理器模块导入成功")
 except ImportError as e:
     print(f"⚠️ 数据处理器未找到: {e}")
     DATA_HANDLER_AVAILABLE = False
@@ -58,7 +58,7 @@ except ImportError as e:
 # 导入分离出的组件�?
 try:
     from SensitivityAnalysisWidget import SensitivityAnalysisWidget
-    print("�?SensitivityAnalysisWidget模块导入成功")
+    print("✅ SensitivityAnalysisWidget模块导入成功")
 except ImportError as e:
     print(f"⚠️ SensitivityAnalysisWidget未找�? {e}")
     # 如果导入失败，定义一个空的占位类
@@ -66,20 +66,20 @@ except ImportError as e:
         def __init__(self, parent=None):
             super().__init__(parent)
             self.setLayout(QVBoxLayout())
-            label = QLabel("SensitivityAnalysisWidget模块未找�?)
+            label = QLabel("SensitivityAnalysisWidget模块未找到")
             self.layout().addWidget(label)
 
 try:
     from PositionConsistencyWidget import PositionConsistencyWidget
-    print("�?PositionConsistencyWidget模块导入成功")
+    print("✅ PositionConsistencyWidget模块导入成功")
 except ImportError as e:
-    print(f"⚠️ PositionConsistencyWidget未找�? {e}")
+    print(f"⚠️ PositionConsistencyWidget未找到: {e}")
     # 如果导入失败，定义一个空的占位类
     class PositionConsistencyWidget(QWidget):
         def __init__(self, parent=None):
             super().__init__(parent)
             self.setLayout(QVBoxLayout())
-            label = QLabel("PositionConsistencyWidget模块未找�?)
+            label = QLabel("PositionConsistencyWidget模块未找到")
             self.layout().addWidget(label)
 
 # 导入Exporter
@@ -93,7 +93,7 @@ except ImportError:
 def save_pyqtgraph_plot(plot_widget, filename):
     """使用 pyqtgraph.exporters 来可靠地保存图表"""
     if not PYQTGRAPH_EXPORTER_AVAILABLE:
-        print("�?保存失败：pyqtgraph.exporters 模块缺失�?)
+        print("⚠️ 保存失败：pyqtgraph.exporters 模块缺失")
         return False
         
     try:
@@ -116,10 +116,10 @@ def save_pyqtgraph_plot(plot_widget, filename):
         # exporter.parameters()['width'] = 1200  # 设置导出图片的宽�?
         
         exporter.export(filename)
-        print(f"�?图表成功保存�? {filename}")
+        print(f"✅ 图表成功保存? {filename}")
         return True
     except Exception as e:
-        print(f"�?使用 pyqtgraph.exporters 保存失败: {e}")
+        print(f"⚠️ 使用 pyqtgraph.exporters 保存失败: {e}")
         import traceback
         traceback.print_exc()
         
@@ -134,7 +134,7 @@ def save_pyqtgraph_plot_fallback(plot_widget, filename):
         if hasattr(plot_widget, 'grab'):
             pixmap = plot_widget.grab()
             if pixmap.save(filename):
-                print(f"�?使用grab方法保存图表成功: {filename}")
+                print(f"✅ 使用grab方法保存图表成功: {filename}")
                 return True
     except Exception as e:
         print(f"⚠️ grab方法保存失败: {e}")
@@ -145,7 +145,7 @@ def save_pyqtgraph_plot_fallback(plot_widget, filename):
             pixmap = QPixmap(plot_widget.size())
             plot_widget.render(pixmap)
             if pixmap.save(filename):
-                print(f"�?使用render方法保存图表成功: {filename}")
+                print(f"✅ 使用render方法保存图表成功: {filename}")
                 return True
     except Exception as e:
         print(f"⚠️ render方法保存失败: {e}")
@@ -157,7 +157,7 @@ def save_pyqtgraph_plot_fallback(plot_widget, filename):
         if screen:
             pixmap = screen.grabWindow(plot_widget.winId())
             if pixmap.save(filename):
-                print(f"�?使用屏幕截图方法保存图表成功: {filename}")
+                print(f"✅ 使用屏幕截图方法保存图表成功: {filename}")
                 return True
     except Exception as e:
         print(f"⚠️ 屏幕截图方法保存失败: {e}")
