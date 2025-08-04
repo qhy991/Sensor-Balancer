@@ -1,0 +1,34 @@
+{
+    "calibration_params": {
+        "coefficient": 0.0025,
+        "bias": 0.0,
+        "zero_pressure": 0.0,
+        "is_zeroed": false,
+        "description": "默认校准参数"
+    },
+    "calibration_map": {
+        "shape": [64, 64],
+        "type": "uniform",
+        "value": 1.0,
+        "description": "默认校准映射（全为1，表示无校正）"
+    },
+    "sensor_info": {
+        "type": "64x64_pressure_sensor",
+        "resolution": "64x64",
+        "max_pressure": 100.0,
+        "description": "64x64压力传感器"
+    },
+    "measurement_settings": {
+        "update_interval": 100,
+        "history_length": 100,
+        "auto_zero": false,
+        "unit": "g",
+        "description": "测量设置"
+    },
+    "advanced_settings": {
+        "enable_position_calibration": false,
+        "enable_sensitivity_analysis": false,
+        "enable_real_time_analysis": true,
+        "description": "高级功能设置"
+    }
+} 

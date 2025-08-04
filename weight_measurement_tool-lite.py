@@ -229,7 +229,167 @@ class CalibrationAnalysisDialog(QtWidgets.QDialog):
             print(f"⚠️ 更新统计信息失败: {e}")
     
     def update_heatmap_tab(self):
-        """更新热力图对比选项卡"""
+        """更新热力图选项卡"""
+        try:
+            # 更新原始数据热力图
+            if hasattr(self, 'raw_image') and self.raw_image is not None:
+                self.raw_image.setImage(self.raw_data.T)
+                
+                # 更新颜色条范围
+                raw_min, raw_max = np.min(self.raw_data), np.max(self.raw_data)
+                if hasattr(self, 'raw_colorbar') and self.raw_colorbar is not None:
+                    self.raw_colorbar.setLevels((raw_min, raw_max))
+            
+            # 更新校正后数据热力图
+            if hasattr(self, 'cal_image') and self.cal_image is not None:
+                self.cal_image.setImage(self.calibrated_data.T)
+                
+                # 更新颜色条范围
+                cal_min, cal_max = np.min(self.calibrated_data), np.max(self.calibrated_data)
+                if hasattr(self, 'cal_colorbar') and self.cal_colorbar is not None:
+                    self.cal_colorbar.setLevels((cal_min, cal_max))
+                    
+        except Exception as e:
+            print(f"⚠️ 更新热力图失败: {e}")
+    
+    def update_diff_tab(self):
+        """更新差异分析选项卡"""
+        try:
+            # 计算新的差异
+            diff_data = self.calibrated_data - self.raw_data
+            
+            # 更新差异热力图
+            if hasattr(self, 'diff_image') and self.diff_image is not None:
+                self.diff_image.setImage(diff_data.T)
+                
+                # 更新颜色条范围
+                diff_min, diff_max = np.min(diff_data), np.max(diff_data)
+                if hasattr(self, 'diff_colorbar') and self.diff_colorbar is not None:
+                    self.diff_colorbar.setLevels((diff_min, diff_max))
+            
+            # 更新差异统计
+            if hasattr(self, 'diff_stats_labels') and len(self.diff_stats_labels) >= 6:
+                diff_stats = self.calculate_stats(diff_data)
+                self.diff_stats_labels[0].setText(f"总差异: {diff_stats['total']:.4f} N")
+                self.diff_stats_labels[1].setText(f"平均差异: {diff_stats['mean']:.6f} N")
+                self.diff_stats_labels[2].setText(f"标准差: {diff_stats['std']:.6f} N")
+                self.diff_stats_labels[3].setText(f"最大差异: {diff_stats['max']:.6f} N")
+                self.diff_stats_labels[4].setText(f"最小差异: {diff_stats['min']:.6f} N")
+                self.diff_stats_labels[5].setText(f"差异范围: {diff_stats['max'] - diff_stats['min']:.6f} N")
+                    
+        except Exception as e:
+            print(f"⚠️ 更新差异分析失败: {e}")
+    
+    def closeEvent(self, event):
+        """关闭事件"""
+        try:
+            # 停止定时器
+            if hasattr(self, 'update_timer') and self.update_timer.isActive():
+                self.update_timer.stop()
+                print("✅ 校正数据分析定时器已停止")
+            
+            # 清理资源
+            if hasattr(self, 'raw_image'):
+                self.raw_image = None
+            if hasattr(self, 'cal_image'):
+                self.cal_image = None
+            if hasattr(self, 'diff_image'):
+                self.diff_image = None
+            if hasattr(self, 'raw_colorbar'):
+                self.raw_colorbar = None
+            if hasattr(self, 'cal_colorbar'):
+                self.cal_colorbar = None
+            if hasattr(self, 'diff_colorbar'):
+                self.diff_colorbar = None
+            
+            print("✅ 校正数据分析窗口已关闭")
+            event.accept()
+            
+        except Exception as e:
+            print(f"⚠️ 关闭校正数据分析窗口时出错: {e}")
+            event.accept()
+    
+    def create_stats_tab(self):
+        """创建统计信息选项卡"""
+        widget = QWidget()
+        layout = QVBoxLayout()
+        
+        # 基本统计信息
+        stats_group = QGroupBox("基本统计信息")
+        stats_layout = QGridLayout()
+        
+        # 原始数据统计
+        raw_stats = self.calculate_stats(self.raw_data)
+        stats_layout.addWidget(QLabel("原始数据:"), 0, 0)
+        
+        # 保存原始数据统计标签为实例变量
+        self.raw_stats_labels = []
+        self.raw_stats_labels.append(QLabel(f"总压力: {raw_stats['total']:.4f} N"))
+        self.raw_stats_labels.append(QLabel(f"平均压力: {raw_stats['mean']:.6f} N"))
+        self.raw_stats_labels.append(QLabel(f"标准差: {raw_stats['std']:.6f} N"))
+        self.raw_stats_labels.append(QLabel(f"最大值: {raw_stats['max']:.6f} N"))
+        self.raw_stats_labels.append(QLabel(f"最小值: {raw_stats['min']:.6f} N"))
+        self.raw_stats_labels.append(QLabel(f"变异系数: {raw_stats['cv']:.4f}"))
+        
+        stats_layout.addWidget(self.raw_stats_labels[0], 0, 1)
+        stats_layout.addWidget(self.raw_stats_labels[1], 0, 2)
+        stats_layout.addWidget(self.raw_stats_labels[2], 0, 3)
+        stats_layout.addWidget(self.raw_stats_labels[3], 1, 1)
+        stats_layout.addWidget(self.raw_stats_labels[4], 1, 2)
+        stats_layout.addWidget(self.raw_stats_labels[5], 1, 3)
+        
+        # 校正后数据统计
+        cal_stats = self.calculate_stats(self.calibrated_data)
+        stats_layout.addWidget(QLabel("校正后数据:"), 2, 0)
+        
+        # 保存校正后数据统计标签为实例变量
+        self.cal_stats_labels = []
+        self.cal_stats_labels.append(QLabel(f"总压力: {cal_stats['total']:.4f} N"))
+        self.cal_stats_labels.append(QLabel(f"平均压力: {cal_stats['mean']:.6f} N"))
+        self.cal_stats_labels.append(QLabel(f"标准差: {cal_stats['std']:.6f} N"))
+        self.cal_stats_labels.append(QLabel(f"最大值: {cal_stats['max']:.6f} N"))
+        self.cal_stats_labels.append(QLabel(f"最小值: {cal_stats['min']:.6f} N"))
+        self.cal_stats_labels.append(QLabel(f"变异系数: {cal_stats['cv']:.4f}"))
+        
+        stats_layout.addWidget(self.cal_stats_labels[0], 2, 1)
+        stats_layout.addWidget(self.cal_stats_labels[1], 2, 2)
+        stats_layout.addWidget(self.cal_stats_labels[2], 2, 3)
+        stats_layout.addWidget(self.cal_stats_labels[3], 3, 1)
+        stats_layout.addWidget(self.cal_stats_labels[4], 3, 2)
+        stats_layout.addWidget(self.cal_stats_labels[5], 3, 3)
+        
+        stats_group.setLayout(stats_layout)
+        layout.addWidget(stats_group)
+        
+        # 校正效果分析
+        effect_group = QGroupBox("校正效果分析")
+        effect_layout = QVBoxLayout()
+        
+        # 计算校正效果
+        total_diff = cal_stats['total'] - raw_stats['total']
+        mean_diff = cal_stats['mean'] - raw_stats['mean']
+        std_diff = cal_stats['std'] - raw_stats['std']
+        cv_diff = cal_stats['cv'] - raw_stats['cv']
+        
+        effect_text = f"总压力变化: {total_diff:+.4f} N ({total_diff/raw_stats['total']*100:+.2f}%)\n"
+        effect_text += f"平均压力变化: {mean_diff:+.6f} N ({mean_diff/raw_stats['mean']*100:+.2f}%)\n"
+        effect_text += f"标准差变化: {std_diff:+.6f} N ({std_diff/raw_stats['std']*100:+.2f}%)\n"
+        effect_text += f"变异系数变化: {cv_diff:+.4f} ({cv_diff/raw_stats['cv']*100:+.2f}%)"
+        
+        # 保存校正效果标签为实例变量
+        self.effect_label = QLabel(effect_text)
+        self.effect_label.setStyleSheet("font-family: monospace; font-size: 12px; background-color: #f8f9fa; padding: 10px; border: 1px solid #dee2e6; border-radius: 4px;")
+        effect_layout.addWidget(self.effect_label)
+        
+        effect_group.setLayout(effect_layout)
+        layout.addWidget(effect_group)
+        
+        layout.addStretch()
+        widget.setLayout(layout)
+        return widget
+    
+    def create_heatmap_tab(self):
+        """创建热力图对比选项卡"""
         widget = QWidget()
         layout = QHBoxLayout()
         
@@ -881,7 +1041,7 @@ class WeightMeasurementWidget(QWidget):
         calibration_group = QGroupBox("校准参数")
         calibration_layout = QGridLayout()
         
-        if hasattr(self, 'use_position_calibration') and self.use_position_calibration:
+        if self.use_position_calibration:
             # 位置校准模式 - 显示位置信息而不是具体系数
             self.calibration_mode_label = QLabel("校准模式: 位置智能校准")
             self.calibration_mode_label.setStyleSheet("font-weight: bold; color: #28a745;")
@@ -947,7 +1107,6 @@ class WeightMeasurementWidget(QWidget):
             calibration_layout.addWidget(self.current_params_label, 3, 0, 1, 2)
         
         calibration_group.setLayout(calibration_layout)
-        layout.addWidget(calibration_group)
         
         # 归零控制组
         zero_group = QGroupBox("归零控制")
@@ -968,7 +1127,6 @@ class WeightMeasurementWidget(QWidget):
         zero_layout.addStretch()
         
         zero_group.setLayout(zero_layout)
-        layout.addWidget(zero_group)
         
         # 重量显示组
         weight_group = QGroupBox("重量显示")
@@ -990,7 +1148,6 @@ class WeightMeasurementWidget(QWidget):
         weight_layout.addWidget(self.weight_unit_label)
         
         weight_group.setLayout(weight_layout)
-        layout.addWidget(weight_group)
         
         # 测量控制组
         measurement_group = QGroupBox("测量控制")
@@ -1019,7 +1176,6 @@ class WeightMeasurementWidget(QWidget):
         measurement_layout.addStretch()
         
         measurement_group.setLayout(measurement_layout)
-        layout.addWidget(measurement_group)
         
         # 实时信息组
         info_group = QGroupBox("实时信息")
@@ -1043,13 +1199,11 @@ class WeightMeasurementWidget(QWidget):
         info_layout.addWidget(self.measurement_status_label, 1, 1)
         
         info_group.setLayout(info_layout)
-        layout.addWidget(info_group)
         
-        # 历史图表组
-        history_group = QGroupBox("历史记录")
+        # 重量历史图表
+        history_group = QGroupBox("重量历史")
         history_layout = QVBoxLayout()
         
-        # 创建历史图表
         self.history_plot = pg.GraphicsLayoutWidget()
         self.history_plot.setFixedHeight(200)
         self.history_plot_widget = self.history_plot.addPlot()
@@ -1062,12 +1216,19 @@ class WeightMeasurementWidget(QWidget):
         
         history_layout.addWidget(self.history_plot)
         history_group.setLayout(history_layout)
+        
+        # 组装布局
+        layout.addWidget(calibration_group)
+        layout.addWidget(zero_group)
+        layout.addWidget(weight_group)
+        layout.addWidget(measurement_group)
+        layout.addWidget(info_group)
         layout.addWidget(history_group)
         
         self.setLayout(layout)
         
         # 初始化显示
-        if hasattr(self, 'use_position_calibration') and self.use_position_calibration:
+        if self.use_position_calibration:
             # 位置校准模式 - 更新位置校准摘要
             self.update_position_calibration_summary()
         else:
@@ -1081,6 +1242,8 @@ class WeightMeasurementWidget(QWidget):
             self.calibration_coefficient = float(text)
             self.update_formula_display()
             self.update_params_display()
+            if self.measurement_active:
+                self.calculate_weight()
         except ValueError:
             self.current_params_label.setText("当前参数: 无效输入")
     
@@ -1090,6 +1253,8 @@ class WeightMeasurementWidget(QWidget):
             self.calibration_bias = float(text)
             self.update_formula_display()
             self.update_params_display()
+            if self.measurement_active:
+                self.calculate_weight()
         except ValueError:
             self.current_params_label.setText("当前参数: 无效输入")
     
@@ -1172,38 +1337,9 @@ class WeightMeasurementWidget(QWidget):
             self.measurement_status_label.setStyleSheet("color: orange; font-weight: bold;")
     
     def clear_history(self):
-        """清空历史记录"""
+        """清空重量历史"""
         self.weight_history.clear()
         self.history_curve.setData([], [])
-    
-    def export_data(self):
-        """导出数据"""
-        try:
-            if not self.weight_history:
-                QMessageBox.warning(self, "警告", "没有可导出的数据")
-                return
-            
-            # 设置默认保存路径
-            default_path = r"C:\Users\84672\Documents\Research\balance-sensor\exports"
-            if not os.path.exists(default_path):
-                os.makedirs(default_path, exist_ok=True)
-            
-            # 生成文件名
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"weight_data_{timestamp}.csv"
-            filepath = os.path.join(default_path, filename)
-            
-            # 导出数据
-            with open(filepath, 'w', newline='', encoding='utf-8') as f:
-                writer = csv.writer(f)
-                writer.writerow(['时间戳', '重量(g)'])
-                for timestamp, weight in self.weight_history:
-                    writer.writerow([timestamp, f"{weight:.6f}"])
-            
-            QMessageBox.information(self, "成功", f"数据已导出到:\n{filepath}")
-            
-        except Exception as e:
-            QMessageBox.critical(self, "错误", f"导出失败: {e}")
     
     def calculate_weight(self, pressure_data):
         """计算重量"""
@@ -1715,12 +1851,8 @@ class WeightMeasurementWidget(QWidget):
             # 转置后: transposed_data[i, j] 对应显示位置 (j, i)
             transposed_data = pressure_data.T
             
-            # 更新热力图图像，直接设置到0-64范围
-            self.heatmap_image.setImage(transposed_data, pos=[0, 0], scale=[1, 1])
-            
-            # 强制重新设置坐标轴范围，确保正方形显示
-            self.heatmap_widget.setXRange(0, 64)
-            self.heatmap_widget.setYRange(0, 64)
+            # 更新热力图图像
+            self.heatmap_image.setImage(transposed_data)
             
             # 更新颜色条范围
             data_min = np.min(pressure_data)
@@ -1746,8 +1878,8 @@ class WeightMeasurementWidget(QWidget):
     def auto_scale_heatmap(self):
         """自动缩放热力图"""
         try:
-            if hasattr(self, 'heatmap_widget'):
-                self.heatmap_widget.autoRange()
+            if hasattr(self, 'heatmap_plot_widget'):
+                self.heatmap_plot_widget.autoRange()
                 print("✅ 热力图已自动缩放")
         except Exception as e:
             print(f"⚠️ 自动缩放失败: {e}")
@@ -1755,10 +1887,10 @@ class WeightMeasurementWidget(QWidget):
     def reset_heatmap_scale(self):
         """重置热力图缩放"""
         try:
-            if hasattr(self, 'heatmap_widget'):
-                # 重置到默认视图：X轴0-60，Y轴0-60
-                self.heatmap_widget.setXRange(0, 64)
-                self.heatmap_widget.setYRange(0, 64)
+            if hasattr(self, 'heatmap_plot_widget'):
+                # 重置到默认视图
+                self.heatmap_plot_widget.setXRange(0, 64)
+                self.heatmap_plot_widget.setYRange(0, 64)
                 print("✅ 热力图缩放已重置")
         except Exception as e:
             print(f"⚠️ 重置缩放失败: {e}")
@@ -2037,11 +2169,11 @@ class WeightMeasurementInterface(QWidget):
             self.weight_widget.update_position_calibration_summary()
     
     def init_ui(self):
-        """初始化用户界面 - 两栏布局"""
-        # 主布局 - 水平分为两栏
+        """初始化用户界面"""
+        # 主布局
         main_layout = QHBoxLayout()
         
-        # ===== 左侧栏：传感器控制和监控 =====
+        # 左侧：传感器控制区域
         left_panel = QVBoxLayout()
         
         # 传感器控制组
@@ -2083,7 +2215,6 @@ class WeightMeasurementInterface(QWidget):
         sensor_layout.addWidget(self.status_label, 3, 0, 1, 2)
         
         sensor_group.setLayout(sensor_layout)
-        left_panel.addWidget(sensor_group)
         
         # 压力显示组
         pressure_group = QGroupBox("压力信息")
@@ -2103,9 +2234,19 @@ class WeightMeasurementInterface(QWidget):
         pressure_layout.addWidget(self.min_pressure_label)
         
         pressure_group.setLayout(pressure_layout)
-        left_panel.addWidget(pressure_group)
         
-        # 热力图显示组
+        # 创建水平布局来放置传感器组和压力组
+        top_layout = QHBoxLayout()
+        top_layout.addWidget(sensor_group)
+        top_layout.addWidget(pressure_group)
+        
+        left_panel.addLayout(top_layout)
+        
+        # 称重组件
+        self.weight_widget = WeightMeasurementWidget(self)
+        left_panel.addWidget(self.weight_widget)
+        
+        # 热力图显示组（简化模式下隐藏）
         self.heatmap_group = QGroupBox("压力分布热力图")
         heatmap_layout = QVBoxLayout()
         
@@ -2129,26 +2270,19 @@ class WeightMeasurementInterface(QWidget):
         heatmap_control_layout.addWidget(self.analysis_btn)
         heatmap_control_layout.addStretch()
         
+        heatmap_layout.addLayout(heatmap_control_layout)
+        
         # 热力图显示区域
-        self.heatmap_plot = pg.GraphicsLayoutWidget()
-        self.heatmap_plot.setFixedHeight(300)
-        self.heatmap_widget = self.heatmap_plot.addPlot()
-        self.heatmap_widget.setAspectLocked(True)  # 保持宽高比
-        self.heatmap_widget.setTitle('压力分布热力图')
-        self.heatmap_widget.invertY(True)  # 使Y轴朝下
+        self.heatmap_plot_widget = pg.GraphicsLayoutWidget()
+        self.heatmap_plot = self.heatmap_plot_widget.addPlot()
+        self.heatmap_plot.setLabel('left', 'Y轴')
+        self.heatmap_plot.setLabel('bottom', 'X轴')
+        self.heatmap_plot.setTitle('压力分布热力图')
+        self.heatmap_plot.invertY(True)
         
-        # 设置坐标轴范围：X轴0-64，Y轴0-64，确保正方形显示
-        self.heatmap_widget.setXRange(0, 64)
-        self.heatmap_widget.setYRange(0, 64)
-        
-        # 创建热力图图像项
         self.heatmap_image = pg.ImageItem()
-        self.heatmap_widget.addItem(self.heatmap_image)
+        self.heatmap_plot.addItem(self.heatmap_image)
         
-        # 移除变换设置，让PyQtGraph自动处理
-        # self.heatmap_image.setTransform(pg.QtGui.QTransform().scale(1, 1))
-        
-        # 添加颜色条
         self.heatmap_colorbar = pg.ColorBarItem(
             values=(0, 1),
             colorMap='viridis',
@@ -2156,8 +2290,7 @@ class WeightMeasurementInterface(QWidget):
         )
         self.heatmap_colorbar.setImageItem(self.heatmap_image)
         
-        heatmap_layout.addLayout(heatmap_control_layout)
-        heatmap_layout.addWidget(self.heatmap_plot)
+        heatmap_layout.addWidget(self.heatmap_plot_widget)
         
         # 热力图信息标签
         self.heatmap_info_label = QLabel("热力图信息: 等待数据...")
@@ -2178,9 +2311,11 @@ class WeightMeasurementInterface(QWidget):
         calibration_control_layout = QHBoxLayout()
         
         self.load_cal_btn = QPushButton("加载校准")
+        self.load_cal_btn.clicked.connect(self.weight_widget.load_calibration)
         self.load_cal_btn.setStyleSheet("background-color: #17a2b8; color: white; font-weight: bold; padding: 6px;")
         
         self.save_cal_btn = QPushButton("保存校准")
+        self.save_cal_btn.clicked.connect(self.weight_widget.save_calibration)
         self.save_cal_btn.setStyleSheet("background-color: #28a745; color: white; font-weight: bold; padding: 6px;")
         
         self.cal_info_btn = QPushButton("校准信息")
@@ -2201,27 +2336,8 @@ class WeightMeasurementInterface(QWidget):
         left_panel.addWidget(self.heatmap_group)
         left_panel.addWidget(self.calibration_group)
         
-        # 移除弹性空间，减少空白区域
-        # left_panel.addStretch()
-        
-        # ===== 右侧栏：称重组件 =====
-        right_panel = QVBoxLayout()
-        
-        # 称重组件
-        self.weight_widget = WeightMeasurementWidget(self)
-        right_panel.addWidget(self.weight_widget)
-        
-        # 现在设置校准按钮的连接（在weight_widget创建之后）
-        self.load_cal_btn.clicked.connect(self.weight_widget.load_calibration)
-        self.save_cal_btn.clicked.connect(self.weight_widget.save_calibration)
-        
-        # 添加弹性空间到右侧面板
-        right_panel.addStretch()
-        
-        # ===== 组装主布局 =====
-        # 左侧占25%，右侧占75%
-        main_layout.addLayout(left_panel, 25)
-        main_layout.addLayout(right_panel, 75)
+        # 组装主布局
+        main_layout.addLayout(left_panel, 1)   # 左侧占1/3
         
         self.setLayout(main_layout)
         
@@ -2231,11 +2347,8 @@ class WeightMeasurementInterface(QWidget):
         # 初始化校准加载器
         self.calibration_loader = CalibrationDataLoader()
         
-        # 设置窗口属性，允许全屏
-        self.setWindowTitle("称重测量系统 - 两栏布局")
-        self.setMinimumSize(1000, 600)
-        self.resize(1600, 800)
-        
+        # 应用简化模式
+        self.apply_simple_mode()
     
     def init_data_handler(self):
         """初始化数据处理器"""
@@ -2436,12 +2549,8 @@ class WeightMeasurementInterface(QWidget):
             # 转置后: transposed_data[i, j] 对应显示位置 (j, i)
             transposed_data = pressure_data.T
             
-            # 更新热力图图像，直接设置到0-64范围
-            self.heatmap_image.setImage(transposed_data, pos=[0, 0], scale=[1, 1])
-            
-            # 强制重新设置坐标轴范围，确保正方形显示
-            self.heatmap_widget.setXRange(0, 64)
-            self.heatmap_widget.setYRange(0, 64)
+            # 更新热力图图像
+            self.heatmap_image.setImage(transposed_data)
             
             # 更新颜色条范围
             data_min = np.min(pressure_data)
@@ -2467,8 +2576,8 @@ class WeightMeasurementInterface(QWidget):
     def auto_scale_heatmap(self):
         """自动缩放热力图"""
         try:
-            if hasattr(self, 'heatmap_widget'):
-                self.heatmap_widget.autoRange()
+            if hasattr(self, 'heatmap_plot_widget'):
+                self.heatmap_plot_widget.autoRange()
                 print("✅ 热力图已自动缩放")
         except Exception as e:
             print(f"⚠️ 自动缩放失败: {e}")
@@ -2476,10 +2585,10 @@ class WeightMeasurementInterface(QWidget):
     def reset_heatmap_scale(self):
         """重置热力图缩放"""
         try:
-            if hasattr(self, 'heatmap_widget'):
-                # 重置到默认视图：X轴0-60，Y轴0-60
-                self.heatmap_widget.setXRange(0, 64)
-                self.heatmap_widget.setYRange(0, 64)
+            if hasattr(self, 'heatmap_plot_widget'):
+                # 重置到默认视图
+                self.heatmap_plot_widget.setXRange(0, 64)
+                self.heatmap_plot_widget.setYRange(0, 64)
                 print("✅ 热力图缩放已重置")
         except Exception as e:
             print(f"⚠️ 重置缩放失败: {e}")
@@ -2629,6 +2738,7 @@ class WeightMeasurementInterface(QWidget):
     def toggle_simple_mode(self):
         """切换简化模式"""
         self.simple_mode = not self.simple_mode
+        self.apply_simple_mode()
         
         if self.simple_mode:
             self.simple_mode_btn.setText("完整模式")
@@ -2647,7 +2757,7 @@ class WeightMeasurementInterface(QWidget):
             self.calibration_group.hide()
             
             # 调整窗口大小
-            self.setFixedSize(500, 400)
+            self.setFixedSize(600, 400)
             
             # 更新窗口标题
             self.setWindowTitle("称重测量应用 - 简化模式")

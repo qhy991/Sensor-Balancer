@@ -257,15 +257,22 @@ class PositionCalibrationManager:
         # 计算净压力
         net_pressure = total_pressure - zero_pressure
         
-        # 计算重量
-        weight = cal_params['slope'] * net_pressure + cal_params['intercept']
+        # 计算重量 - 归零后只使用斜率，不使用偏置
+        if zero_pressure > 0:
+            # 已归零：重量 = 斜率 × 净压力
+            weight = cal_params['slope'] * net_pressure
+        else:
+            # 未归零：重量 = 斜率 × 净压力 + 偏置
+            weight = cal_params['slope'] * net_pressure + cal_params['intercept']
+        
         weight = max(0.0, weight)  # 确保重量不为负
         
         return {
             'weight': weight,
             'total_pressure': total_pressure,
             'net_pressure': net_pressure,
-            'calibration_params': cal_params
+            'calibration_params': cal_params,
+            'is_zeroed': zero_pressure > 0
         }
     
     def update_position_calibration(self, position_id, slope, intercept, r_squared, measurement_count=1):
